@@ -16,6 +16,8 @@
 #ifndef ALEXA_CLIENT_SDK_SAMPLEAPP_INCLUDE_SAMPLEAPP_UIMANAGER_H_
 #define ALEXA_CLIENT_SDK_SAMPLEAPP_INCLUDE_SAMPLEAPP_UIMANAGER_H_
 
+#include <AVSCommon/SDKInterfaces/AuthObserverInterface.h>
+#include <AVSCommon/SDKInterfaces/DCFObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/DialogUXStateObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/ConnectionStatusObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/AuthObserverInterface.h>
@@ -25,6 +27,7 @@
 #include <AVSCommon/SDKInterfaces/SpeakerManagerObserverInterface.h>
 #include <Alerts/AlertObserverInterface.h>
 #include <AVSCommon/Utils/Threading/Executor.h>
+#include <CBLAuthDelegate/CBLAuthRequesterInterface.h>
 
 namespace alexaClientSDK {
 namespace sampleApp {
@@ -35,19 +38,27 @@ namespace sampleApp {
  */
 class UIManager
         : public avsCommon::sdkInterfaces::DialogUXStateObserverInterface
+        , public avsCommon::sdkInterfaces::AuthObserverInterface
+        , public avsCommon::sdkInterfaces::DCFObserverInterface
         , public avsCommon::sdkInterfaces::ConnectionStatusObserverInterface
         , public avsCommon::sdkInterfaces::SingleSettingObserverInterface
         , public avsCommon::sdkInterfaces::SpeakerManagerObserverInterface
         , public avsCommon::sdkInterfaces::NotificationsObserverInterface
+        , public authorization::cblAuthDelegate::CBLAuthRequesterInterface {
         , public alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface {
 public:
+    /**
+     * Constructor.
+     */
+    UIManager();
+
     void onDialogUXStateChanged(DialogUXState state) override;
 
     void onConnectionStatusChanged(const Status status, const ChangedReason reason) override;
 
     void onSettingChanged(const std::string& key, const std::string& value) override;
 
-    // @name SpeakerManagerObserverInterface Functions
+    /// @name SpeakerManagerObserverInterface Functions
     /// @{
     void onSpeakerSettingsChanged(
         const avsCommon::sdkInterfaces::SpeakerManagerObserverInterface::Source& source,
@@ -55,7 +66,7 @@ public:
         const avsCommon::sdkInterfaces::SpeakerInterface::SpeakerSettings& settings) override;
     /// }
 
-    // @name NotificationsObserverInterface Functions
+    /// @name NotificationsObserverInterface Functions
     /// @{
     void onSetIndicator(avsCommon::avs::IndicatorState state) override;
     /// }
@@ -67,6 +78,26 @@ public:
         const std::string& alertToken,
         alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface::State state,
         const std::string& reason = "") override;
+    /// }
+
+    /// @name CBLAuthRequesterInterface Functions
+    /// @{
+    void onRequestAuthorization(const std::string& url, const std::string& code) override;
+    void onCheckingForAuthorization() override;
+    /// }
+
+    /// @name AuthObserverInterface Methods
+    /// @{
+    void onAuthStateChange(
+        avsCommon::sdkInterfaces::AuthObserverInterface::State newState,
+        avsCommon::sdkInterfaces::AuthObserverInterface::Error error) override;
+    /// }
+
+    /// @name DCFObserverInterface Methods
+    /// @{
+    void onDCFStateChange(
+        avsCommon::sdkInterfaces::DCFObserverInterface::State newState,
+        avsCommon::sdkInterfaces::DCFObserverInterface::Error error) override;
     /// }
 
     /**
@@ -110,6 +141,11 @@ public:
     void printESPControlScreen(bool support, const std::string& voiceEnergy, const std::string& ambientEnergy);
 
     /**
+     * Prints the Comms Control Options screen. This gives the user the possible Comms control options.
+     */
+    void printCommsControlScreen();
+
+    /**
      * Prints the Error Message for Wrong Input.
      */
     void printErrorScreen();
@@ -144,6 +180,11 @@ public:
      */
     void printESPDataOverrideNotSupported();
 
+    /**
+     * Prints an error message when trying to access Comms controls if Comms is not supported.
+     */
+    void printCommsNotSupported();
+
 private:
     /**
      * Prints the current state of Alexa after checking what the appropriate message to display is based on the current
@@ -158,6 +199,18 @@ private:
     void ledSetVolume(unsigned int volume);
     /// The current dialog UX state of the SDK
     DialogUXState m_dialogState;
+
+    /// The current DCF delegate state.
+    avsCommon::sdkInterfaces::DCFObserverInterface::State m_dcfState;
+
+    /// The error associated with the DCF delegate state.
+    avsCommon::sdkInterfaces::DCFObserverInterface::Error m_dcfError;
+
+    /// The current authorization state of the SDK.
+    avsCommon::sdkInterfaces::AuthObserverInterface::State m_authState;
+
+    /// Counter used to make repeated messages about checking for authorization distinguishable from each other.
+    int m_authCheckCounter;
 
     /// The current connection state of the SDK.
     avsCommon::sdkInterfaces::ConnectionStatusObserverInterface::Status m_connectionStatus;

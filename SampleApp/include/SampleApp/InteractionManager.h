@@ -52,6 +52,7 @@ public:
         capabilityAgents::aip::AudioProvider wakeWordAudioProvider = capabilityAgents::aip::AudioProvider::null(),
         std::shared_ptr<esp::ESPDataProviderInterface> espProvider = nullptr,
         std::shared_ptr<esp::ESPDataModifierInterface> espModifier = nullptr,
+        std::shared_ptr<avsCommon::sdkInterfaces::CallManagerInterface> callManager = nullptr);
 		        bool const startPaStream = true);
 
 
@@ -198,6 +199,21 @@ public:
     void setESPAmbientEnergy(const std::string& ambientEnergy);
 
     /**
+     * Grants the user access to the communications controls.
+     */
+    void commsControl();
+
+    /**
+     * Should be called when the user wants to accept a call.
+     */
+    void acceptCall();
+
+    /**
+     * Should be called when the user wants to stop a call.
+     */
+    void stopCall();
+
+    /**
      * UXDialogObserverInterface methods
      */
     void onDialogUXStateChanged(DialogUXState newState) override;
@@ -217,6 +233,9 @@ private:
 
     /// The ESP modifier.
     std::shared_ptr<esp::ESPDataModifierInterface> m_espModifier;
+
+    /// The call manager.
+    std::shared_ptr<avsCommon::sdkInterfaces::CallManagerInterface> m_callManager;
 
     /// The hold to talk audio provider.
     capabilityAgents::aip::AudioProvider m_holdToTalkAudioProvider;

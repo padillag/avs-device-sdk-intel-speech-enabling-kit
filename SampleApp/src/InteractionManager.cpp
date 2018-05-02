@@ -29,6 +29,7 @@ InteractionManager::InteractionManager(
     capabilityAgents::aip::AudioProvider wakeWordAudioProvider,
     std::shared_ptr<esp::ESPDataProviderInterface> espProvider,
     std::shared_ptr<esp::ESPDataModifierInterface> espModifier,
+    std::shared_ptr<avsCommon::sdkInterfaces::CallManagerInterface> callManager) :
         bool startPaStream) :
 	    RequiresShutdown{"InteractionManager"},
         m_client{client},
@@ -36,6 +37,7 @@ InteractionManager::InteractionManager(
         m_userInterface{userInterface},
         m_espProvider{espProvider},
         m_espModifier{espModifier},
+        m_callManager{callManager},
         m_holdToTalkAudioProvider{holdToTalkAudioProvider},
         m_tapToTalkAudioProvider{tapToTalkAudioProvider},
         m_wakeWordAudioProvider{wakeWordAudioProvider},
@@ -250,6 +252,36 @@ void InteractionManager::setESPAmbientEnergy(const std::string& ambientEnergy) {
             }
         } else {
             m_userInterface->printESPNotSupported();
+        }
+    });
+}
+
+void InteractionManager::commsControl() {
+    m_executor.submit([this]() {
+        if (m_client->isCommsEnabled()) {
+            m_userInterface->printCommsControlScreen();
+        } else {
+            m_userInterface->printCommsNotSupported();
+        }
+    });
+}
+
+void InteractionManager::acceptCall() {
+    m_executor.submit([this]() {
+        if (m_client->isCommsEnabled()) {
+            m_client->acceptCommsCall();
+        } else {
+            m_userInterface->printCommsNotSupported();
+        }
+    });
+}
+
+void InteractionManager::stopCall() {
+    m_executor.submit([this]() {
+        if (m_client->isCommsEnabled()) {
+            m_client->stopCommsCall();
+        } else {
+            m_userInterface->printCommsNotSupported();
         }
     });
 }
