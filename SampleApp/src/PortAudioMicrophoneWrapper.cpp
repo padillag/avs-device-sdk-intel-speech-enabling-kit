@@ -128,6 +128,41 @@ bool PortAudioMicrophoneWrapper::openStream() {
         return false;
     }
 
+    PaTime suggestedLatency;
+    bool latencyInConfig = getConfigSuggestedLatency(suggestedLatency);
+
+    if (!latencyInConfig) {
+        err = Pa_OpenDefaultStream(
+            &m_paStream,
+            NUM_INPUT_CHANNELS,
+            NUM_OUTPUT_CHANNELS,
+            paInt16,
+            SAMPLE_RATE,
+            PREFERRED_SAMPLES_PER_CALLBACK,
+            PortAudioCallback,
+            this);
+    } else {
+        ACSDK_INFO(
+            LX("PortAudio suggestedLatency has been configured to ").d("Seconds", std::to_string(suggestedLatency)));
+
+        PaStreamParameters inputParameters;
+        std::memset(&inputParameters, 0, sizeof(inputParameters));
+        inputParameters.device = Pa_GetDefaultInputDevice();
+        inputParameters.channelCount = NUM_INPUT_CHANNELS;
+        inputParameters.sampleFormat = paInt16;
+        inputParameters.suggestedLatency = suggestedLatency;
+        inputParameters.hostApiSpecificStreamInfo = nullptr;
+
+        err = Pa_OpenStream(
+            &m_paStream,
+            &inputParameters,
+            nullptr,
+            SAMPLE_RATE,
+            PREFERRED_SAMPLES_PER_CALLBACK,
+            paNoFlag,
+            PortAudioCallback,
+            this);
+    }
     numDevices = Pa_GetDeviceCount();
     if( numDevices < 0 ) {
         err = numDevices;

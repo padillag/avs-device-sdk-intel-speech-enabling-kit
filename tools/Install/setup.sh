@@ -241,7 +241,7 @@ cat << EOF > "$CONFIG_FILE"
         "deviceSerialNumber":"$DEVICE_SERIAL_NUMBER",
         "productId":"$PRODUCT_ID"
     },
-    "dcfDelegate":{
+    "capabilitiesDelegate":{
     },
     "miscDatabase":{
         "databaseFilePath":"$CONFIG_DB_PATH/miscDatabase.db"

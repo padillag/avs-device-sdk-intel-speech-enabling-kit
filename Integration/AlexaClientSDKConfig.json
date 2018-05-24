@@ -14,13 +14,13 @@
         // Product ID from developer.amazon.com
         "productId":"${SDK_CONFIG_PRODUCT_ID}"
     },
-    "dcfDelegate":{
+    "capabilitiesDelegate":{
         // The endpoint to connect in order to send device capabilities.
         // This will only be used in DEBUG builds.
         // e.g. "endpoint": "https://api.amazonalexa.com"
-        // Override DCF Publish message to be sent out.
+        // Override the message to be sent out to the Capabilities API.
         // This will only be used in DEBUG builds.
-        // e.g. "overridenDcfPublishMessageBody": {
+        // e.g. "overridenCapabilitiesPublishMessageBody": {
         //          "envelopeVersion":"20160207",
         //          "capabilities":[
         //              {

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef ALEXA_CLIENT_SDK_AVSCOMMON_SDKINTERFACES_INCLUDE_AVSCOMMON_SDKINTERFACES_DCFOBSERVERINTERFACE_H_
-#define ALEXA_CLIENT_SDK_AVSCOMMON_SDKINTERFACES_INCLUDE_AVSCOMMON_SDKINTERFACES_DCFOBSERVERINTERFACE_H_
+#ifndef ALEXA_CLIENT_SDK_AVSCOMMON_SDKINTERFACES_INCLUDE_AVSCOMMON_SDKINTERFACES_CAPABILITIESOBSERVERINTERFACE_H_
+#define ALEXA_CLIENT_SDK_AVSCOMMON_SDKINTERFACES_INCLUDE_AVSCOMMON_SDKINTERFACES_CAPABILITIESOBSERVERINTERFACE_H_
 
 #include <ostream>
 
@@ -23,15 +23,15 @@ namespace avsCommon {
 namespace sdkInterfaces {
 
 /**
- * This interface is used to observe changes to the state of the DCF delegate.
+ * This interface is used to observe changes to the state of the CapabilitiesDelegate.
  */
-class DCFObserverInterface {
+class CapabilitiesObserverInterface {
 public:
-    /// The enum State describes the state of the DCF delegate.
+    /// The enum State describes the state of the CapabilitiesDelegate.
     enum class State {
-        /// DCF delegate not yet published.
+        /// CapabilitiesDelegate not yet published.
         UNINITIALIZED,
-        /// The DCF publish message went through without issues.
+        /// The Capabilities API message went through without issues.
         SUCCESS,
         /// The message did not go through because of issues that need fixing.
         FATAL_ERROR,
@@ -58,18 +58,18 @@ public:
     /**
      * Virtual destructor to assure proper cleanup of derived types.
      */
-    virtual ~DCFObserverInterface() = default;
+    virtual ~CapabilitiesObserverInterface() = default;
 
     /**
-     * Notification that an DCF delegate state has changed.
+     * Notification that an CapabilitiesDelegate state has changed.
      *
-     * @note Implementations of this method must not call DCFDelegate methods because the DCFDelegate
+     * @note Implementations of this method must not call CapabilitiesDelegate methods because the CapabilitiesDelegate
      * may be in a 'locked' state at the time this call is made. If you do, then you may end up with a deadlock.
      *
-     * @param newState The new state of the DCF delegate.
-     * @param error The error associated to the state change.
+     * @param newState The new state of the CapabilitiesDelegate.
+     * @param newError The error associated to the state change.
      */
-    virtual void onDCFStateChange(State newState, Error error) = 0;
+    virtual void onCapabilitiesStateChange(State newState, Error newError) = 0;
 };
 
 /**
@@ -79,18 +79,18 @@ public:
  * @param state The state value to write to the @c ostream as a string.
  * @return The @c ostream that was passed in and written to.
  */
-inline std::ostream& operator<<(std::ostream& stream, const DCFObserverInterface::State& state) {
+inline std::ostream& operator<<(std::ostream& stream, const CapabilitiesObserverInterface::State& state) {
     switch (state) {
-        case DCFObserverInterface::State::UNINITIALIZED:
+        case CapabilitiesObserverInterface::State::UNINITIALIZED:
             return stream << "UNINTIALIZED";
-        case DCFObserverInterface::State::SUCCESS:
+        case CapabilitiesObserverInterface::State::SUCCESS:
             return stream << "SUCCESS";
-        case DCFObserverInterface::State::FATAL_ERROR:
+        case CapabilitiesObserverInterface::State::FATAL_ERROR:
             return stream << "FATAL_ERROR";
-        case DCFObserverInterface::State::RETRIABLE_ERROR:
+        case CapabilitiesObserverInterface::State::RETRIABLE_ERROR:
             return stream << "RETRIABLE_ERROR";
     }
-    return stream << "Unknown DCFObserverInterface::State!: " << state;
+    return stream << "Unknown CapabilitiesObserverInterface::State!: " << state;
 }
 
 /**
@@ -100,26 +100,26 @@ inline std::ostream& operator<<(std::ostream& stream, const DCFObserverInterface
  * @param error The error value to write to the @c ostream as a string.
  * @return The @c ostream that was passed in and written to.
  */
-inline std::ostream& operator<<(std::ostream& stream, const DCFObserverInterface::Error& error) {
+inline std::ostream& operator<<(std::ostream& stream, const CapabilitiesObserverInterface::Error& error) {
     switch (error) {
-        case DCFObserverInterface::Error::UNINITIALIZED:
+        case CapabilitiesObserverInterface::Error::UNINITIALIZED:
             return stream << "UNINTIALIZED";
-        case DCFObserverInterface::Error::SUCCESS:
+        case CapabilitiesObserverInterface::Error::SUCCESS:
             return stream << "SUCCESS";
-        case DCFObserverInterface::Error::UNKNOWN_ERROR:
+        case CapabilitiesObserverInterface::Error::UNKNOWN_ERROR:
             return stream << "UNKNOWN_ERROR";
-        case DCFObserverInterface::Error::FORBIDDEN:
+        case CapabilitiesObserverInterface::Error::FORBIDDEN:
             return stream << "FORBIDDEN";
-        case DCFObserverInterface::Error::SERVER_INTERNAL_ERROR:
+        case CapabilitiesObserverInterface::Error::SERVER_INTERNAL_ERROR:
             return stream << "SERVER_INTERNAL_ERROR";
-        case DCFObserverInterface::Error::BAD_REQUEST:
+        case CapabilitiesObserverInterface::Error::BAD_REQUEST:
             return stream << "BAD_REQUEST";
     }
-    return stream << "Unknown DCFObserverInterface::Error!: " << error;
+    return stream << "Unknown CapabilitiesObserverInterface::Error!: " << error;
 }
 
 }  // namespace sdkInterfaces
 }  // namespace avsCommon
 }  // namespace alexaClientSDK
 
-#endif  // ALEXA_CLIENT_SDK_AVSCOMMON_SDKINTERFACES_INCLUDE_AVSCOMMON_SDKINTERFACES_DCFOBSERVERINTERFACE_H_
+#endif  // ALEXA_CLIENT_SDK_AVSCOMMON_SDKINTERFACES_INCLUDE_AVSCOMMON_SDKINTERFACES_CAPABILITIESOBSERVERINTERFACE_H_

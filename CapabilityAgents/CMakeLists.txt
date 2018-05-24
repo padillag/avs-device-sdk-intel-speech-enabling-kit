@@ -14,3 +14,7 @@ add_subdirectory("SpeechSynthesizer")
 add_subdirectory("Settings")
 add_subdirectory("System")
 add_subdirectory("TemplateRuntime")
+
+if (COMMS)
+    add_subdirectory("CallManager")
+endif()

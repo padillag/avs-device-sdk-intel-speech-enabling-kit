@@ -19,14 +19,24 @@
 #include "SampleApp/SampleApplication.h"
 #include "SampleApp/PortAudioObserver.h"
 
+#ifdef KWD_KITTAI
+#include <KittAi/KittAiKeyWordDetector.h>
+#elif KWD_SENSORY
+#include <Sensory/SensoryKeywordDetector.h>
+
+
 #ifdef KWD
 #include <KWDProvider/KeywordDetectorProvider.h>
+#endif
+
+
 #elif KWD_HARDWARE
 #if defined(ALSA_HW_CTRL)
 #include <AlsaController/AlsaHardwareController.h>
 #endif
 #include <HardwareController/AbstractHardwareController.h>
 #include <Hardware/HardwareKeywordDetector.h>
+
 #endif
 
 #ifdef ENABLE_ESP
@@ -47,7 +57,7 @@
 #include <Audio/AudioFactory.h>
 #include <CBLAuthDelegate/CBLAuthDelegate.h>
 #include <CBLAuthDelegate/SQLiteCBLAuthDelegateStorage.h>
-#include <DCFDelegate/DCFDelegate.h>
+#include <CapabilitiesDelegate/CapabilitiesDelegate.h>
 #include <MediaPlayer/MediaPlayer.h>
 #include <Notifications/SQLiteNotificationsStorage.h>
 #include <Settings/SQLiteSettingStorage.h>
@@ -104,6 +114,18 @@ std::unordered_map<std::string, SampleApplication::SpeakerTypeAndCreateFunc>
 std::unordered_map<std::string, ExternalMediaPlayer::AdapterCreateFunction> SampleApplication::m_adapterToCreateFuncMap;
 
 
+#ifdef KWD_KITTAI
+/// The sensitivity of the Kitt.ai engine.
+static const double KITT_AI_SENSITIVITY = 0.6;
+
+/// The audio amplifier level of the Kitt.ai engine.
+static const float KITT_AI_AUDIO_GAIN = 2.0;
+
+/// Whether Kitt.ai should apply front end audio processing.
+static const bool KITT_AI_APPLY_FRONT_END_PROCESSING = true;
+#endif
+
+/// String to identify log entries originating from this file.
 static const std::string TAG("SampleApplication");
 
 /**
@@ -175,14 +197,14 @@ std::unique_ptr<SampleApplication> SampleApplication::create(
     const std::string& logLevel,
     const std::string& hwName) {
     auto clientApplication = std::unique_ptr<SampleApplication>(new SampleApplication);
-    if (!clientApplication->initialize(pathToConfig, pathToInputFolder, logLevel, hwName)) {
-        ACSDK_CRITICAL(LX("Failed to initialize SampleApplication"));
+    if (!clientApplication->initialize(configFiles, pathToInputFolder, logLevel, hwName)) {
+        ConsolePrinter::simplePrint("Failed to initialize SampleApplication");
         return nullptr;
     } else {
         ConsolePrinter::simplePrint("SampleApplication initialized successfully");
     }
     if (!ignoreSigpipeSignals()) {
-        ACSDK_CRITICAL(LX("Failed to set a signal handler for SIGPIPE"));
+        ConsolePrinter::simplePrint("Failed to set a signal handler for SIGPIPE");
         return nullptr;
     }
 
@@ -219,8 +241,8 @@ void SampleApplication::run() {
 }
 
 SampleApplication::~SampleApplication() {
-    if (m_dcfDelegate) {
-        m_dcfDelegate->shutdown();
+    if (m_capabilitiesDelegate) {
+        m_capabilitiesDelegate->shutdown();
     }
 
     // First clean up anything that depends on the the MediaPlayers.
@@ -276,7 +298,6 @@ bool SampleApplication::createMediaPlayersForAdapters(
 
 bool SampleApplication::initialize(
     const std::vector<std::string>& configFiles,
-    const std::string& pathToConfig,
     const std::string& pathToInputFolder,
     const std::string& logLevel,
     const std::string& hwName) {
@@ -306,17 +327,26 @@ bool SampleApplication::initialize(
     }
     alexaClientSDK::avsCommon::utils::logger::LoggerSinkManager::instance().initialize(consolePrinter);
 
-    /*
-     * This is a required step upon startup of the SDK before any modules are created. For that reason, it is being
-     * called here, before creating the MediaPlayer, audio streams, DefaultClient, etc.
-     */
-    std::ifstream configInfile(pathToConfig);
-    if (!configInfile.good()) {
-        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Failed to read config file!");
-        return false;
+    std::vector<std::shared_ptr<std::istream>> configJsonStreams;
+
+    for (auto configFile : configFiles) {
+        if (configFile.empty()) {
+            alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Config filename is empty!");
+            return false;
+        }
+
+        auto configInFile = std::shared_ptr<std::ifstream>(new std::ifstream(configFile));
+        if (!configInFile->good()) {
+            ACSDK_CRITICAL(LX("Failed to read config file").d("filename", configFile));
+            alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Failed to read config file " + configFile);
+            return false;
+        }
+
+        configJsonStreams.push_back(configInFile);
     }
-    if (!avsCommon::avs::initialization::AlexaClientSDKInit::initialize({&configInfile})) {
-        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Failed to initialize SDK!");
+
+    if (!avsCommon::avs::initialization::AlexaClientSDKInit::initialize(configJsonStreams)) {
+        ACSDK_CRITICAL(LX("Failed to initialize SDK!"));
         return false;
     }
 
@@ -347,6 +377,7 @@ bool SampleApplication::initialize(
         ACSDK_CRITICAL(LX("Failed to create media player for notifications!"));
         return false;
     }
+
 
     m_ringtoneMediaPlayer = alexaClientSDK::mediaPlayer::MediaPlayer::create(
         httpContentFetcherFactory, avsCommon::sdkInterfaces::SpeakerInterface::Type::AVS_SYNCED, "RingtoneMediaPlayer");
@@ -420,6 +451,7 @@ bool SampleApplication::initialize(
     std::shared_ptr<avsCommon::utils::libcurlUtils::HttpPut> httpPut =
         avsCommon::utils::libcurlUtils::HttpPut::create();
 
+
     /*
      * Creating the UI component that observes various components and prints to the console accordingly.
      */
@@ -430,15 +462,23 @@ bool SampleApplication::initialize(
      * CustomerDataHandler
      */
     auto customerDataManager = std::make_shared<registrationManager::CustomerDataManager>();
-    auto connectionObserver = std::make_shared<alexaClientSDK::sampleApp::ConnectionObserver>();
 
     /*
      * Creating the deviceInfo object
-     * Creating the AuthDelegate - this component takes care of LWA and authorization of the client. At the moment,
-     * this must be done and authorization must be achieved prior to making the call to connect().
      */
-    std::shared_ptr<alexaClientSDK::authDelegate::AuthDelegate> authDelegate =
-        alexaClientSDK::authDelegate::AuthDelegate::create();
+    std::shared_ptr<avsCommon::utils::DeviceInfo> deviceInfo = avsCommon::utils::DeviceInfo::create(config);
+    if (!deviceInfo) {
+        ACSDK_CRITICAL(LX("Creation of DeviceInfo failed!"));
+        return false;
+    }
+
+    /*
+     * Creating the AuthDelegate - this component takes care of LWA and authorization of the client.
+     */
+    auto authDelegateStorage = authorization::cblAuthDelegate::SQLiteCBLAuthDelegateStorage::create(config);
+    std::shared_ptr<avsCommon::sdkInterfaces::AuthDelegateInterface> authDelegate =
+        authorization::cblAuthDelegate::CBLAuthDelegate::create(
+            config, customerDataManager, std::move(authDelegateStorage), userInterfaceManager, nullptr, deviceInfo);
 
     if (!authDelegate) {
         ACSDK_CRITICAL(LX("Creation of AuthDelegate failed!"));
@@ -446,18 +486,19 @@ bool SampleApplication::initialize(
     }
 
     /*
-     * Creating the DCFDelegate - This component provides the client with the ability to send DCF messages.
+     * Creating the CapabilitiesDelegate - This component provides the client with the ability to send messages to the
+     * Capabilities API.
      */
-    m_dcfDelegate =
-        alexaClientSDK::dcfDelegate::DCFDelegate::create(authDelegate, miscStorage, httpPut, config, deviceInfo);
+    m_capabilitiesDelegate = alexaClientSDK::capabilitiesDelegate::CapabilitiesDelegate::create(
+        authDelegate, miscStorage, httpPut, config, deviceInfo);
 
-    if (!m_dcfDelegate) {
-        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Creation of DCFDelegate failed!");
+    if (!m_capabilitiesDelegate) {
+        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Creation of CapabilitiesDelegate failed!");
         return false;
     }
 
     authDelegate->addAuthObserver(userInterfaceManager);
-    m_dcfDelegate->addDCFObserver(userInterfaceManager);
+    m_capabilitiesDelegate->addCapabilitiesObserver(userInterfaceManager);
 
     // INVALID_FIRMWARE_VERSION is passed to @c getInt() as a default in case FIRMWARE_VERSION_KEY is not found.
     int firmwareVersion = static_cast<int>(avsCommon::sdkInterfaces::softwareInfo::INVALID_FIRMWARE_VERSION);
@@ -492,6 +533,7 @@ bool SampleApplication::initialize(
             m_audioMediaPlayer,
             m_alertsMediaPlayer,
             m_notificationsMediaPlayer,
+
             m_ringtoneMediaPlayer,
             speakSpeaker,
             audioSpeaker,
@@ -509,7 +551,7 @@ bool SampleApplication::initialize(
             {userInterfaceManager},
             std::move(internetConnectionMonitor),
             displayCardsSupported,
-            m_dcfDelegate,
+            m_capabilitiesDelegate,
             firmwareVersion,
             true,
             nullptr);
@@ -519,23 +561,12 @@ bool SampleApplication::initialize(
         return false;
     }
 
-    m_dcfDelegate->addDCFObserver(client);
-
-    std::string endpoint;
-    sampleAppConfig.getString(ENDPOINT_KEY, &endpoint);
-
-    client->connect(m_dcfDelegate, endpoint);
-
     // Add userInterfaceManager as observer of locale setting.
     client->addSettingObserver("locale", userInterfaceManager);
-    // Send default settings set by the user to AVS.
-    client->sendDefaultSettings();
 
     client->addSpeakerManagerObserver(userInterfaceManager);
 
     client->addNotificationsObserver(userInterfaceManager);
-
-    client->addAlertsObserver(userInterfaceManager);
 
     /*
      * Add GUI Renderer as an observer if display cards are supported.
@@ -637,15 +668,32 @@ bool SampleApplication::initialize(
     auto keywordObserver =
         std::make_shared<alexaClientSDK::sampleApp::KeywordObserver>(client, wakeWordAudioProvider, espProvider);
 
-    m_keywordDetector = alexaClientSDK::kwd::KeywordDetectorProvider::create(
+#if defined(KWD_KITTAI)
+    m_keywordDetector = alexaClientSDK::kwd::KittAiKeyWordDetector::create(
         sharedDataStream,
         compatibleAudioFormat,
         {keywordObserver},
         std::unordered_set<
             std::shared_ptr<alexaClientSDK::avsCommon::sdkInterfaces::KeyWordDetectorStateObserverInterface>>(),
-        pathToInputFolder);
+        pathToInputFolder + "/common.res",
+        {{pathToInputFolder + "/alexa.umdl", "ALEXA", KITT_AI_SENSITIVITY}},
+        KITT_AI_AUDIO_GAIN,
+        KITT_AI_APPLY_FRONT_END_PROCESSING);
     if (!m_keywordDetector) {
-        ACSDK_CRITICAL(LX("Failed to create keyword detector!"));
+        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Failed to create KittAiKeyWordDetector!");
+        return false;
+    }
+#elif defined(KWD_SENSORY)
+    m_keywordDetector = kwd::SensoryKeywordDetector::create(
+        sharedDataStream,
+        compatibleAudioFormat,
+        {keywordObserver},
+        std::unordered_set<
+            std::shared_ptr<alexaClientSDK::avsCommon::sdkInterfaces::KeyWordDetectorStateObserverInterface>>(),
+        pathToInputFolder + "/spot-alexa-rpi-31000.snsr");
+    if (!m_keywordDetector) {
+        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Failed to create SensoryKeyWordDetector!");
+        return false;
     }
 #elif defined(KWD_HARDWARE)
     std::shared_ptr<kwd::AbstractHardwareController> controller = nullptr;
@@ -685,13 +733,17 @@ bool SampleApplication::initialize(
 #endif
 
 #endif
+
+/*
 #ifdef KWD_HARDWARE
     bool startPaStream = false;
 #else
     bool startPaStream = true;
+#endif
+*/
 
     // If wake word is enabled, then creating the interaction manager with a wake word audio provider.
-    m_interactionManager = std::make_shared<alexaClientSDK::sampleApp::InteractionManager>(
+   m_interactionManager = std::make_shared<alexaClientSDK::sampleApp::InteractionManager>(
         client,
         micWrapper,
         userInterfaceManager,
@@ -699,14 +751,12 @@ bool SampleApplication::initialize(
         tapToTalkAudioProvider,
         wakeWordAudioProvider,
         espProvider,
-        espModifier,
-		startPaStream);
+        espModifier);
 
 #else
     // If wake word is not enabled, then creating the interaction manager without a wake word audio provider.
     m_interactionManager = std::make_shared<alexaClientSDK::sampleApp::InteractionManager>(
         client, micWrapper, userInterfaceManager, holdToTalkAudioProvider, tapToTalkAudioProvider);
-
 #endif
 
 #ifdef KWD_HARDWARE
@@ -714,6 +764,7 @@ bool SampleApplication::initialize(
     // default. The hardware KWD needs this to be muted initially.
     micWrapper->stopStreamingMicrophoneData();
 #endif
+
 
     client->addAlexaDialogStateObserver(m_interactionManager);
 
@@ -723,6 +774,19 @@ bool SampleApplication::initialize(
         ACSDK_CRITICAL(LX("Failed to create UserInputManager!"));
         return false;
     }
+
+    authDelegate->addAuthObserver(m_userInputManager);
+    m_capabilitiesDelegate->addCapabilitiesObserver(m_userInputManager);
+    m_capabilitiesDelegate->addCapabilitiesObserver(client);
+
+    // Connect once configuration is all set.
+    std::string endpoint;
+    sampleAppConfig.getString(ENDPOINT_KEY, &endpoint);
+
+    client->connect(m_capabilitiesDelegate, endpoint);
+
+    // Send default settings set by the user to AVS.
+    client->sendDefaultSettings();
 
     return true;
 }
