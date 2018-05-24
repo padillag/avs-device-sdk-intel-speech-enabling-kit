@@ -56,6 +56,13 @@
             "locale":"${SETTING_LOCALE_VALUE}"
         }
     },
+    "bluetooth" : {
+        // Path to Bluetooth database file. e.g. /home/ubuntu/Build/bluetooth.db
+        // Note: The directory specified must be valid.
+        // The database file (bluetooth.db) will be created by SampleApp, do not create it yourself.
+        // The database file should only be used for bluetooth (don't use it for other components of SDK)
+        "databaseFilePath":"${SDK_BLUETOOTH_DATABASE_FILE_PATH}"
+    },
     "certifiedSender":{
         // Path to Certified Sender database file. e.g. /home/ubuntu/Build/certifiedsender.db
         // Note: The directory specified must be valid.

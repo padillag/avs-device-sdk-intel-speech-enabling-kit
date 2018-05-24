@@ -25,7 +25,6 @@
 #include <AVSCommon/SDKInterfaces/SingleSettingObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/SpeakerInterface.h>
 #include <AVSCommon/SDKInterfaces/SpeakerManagerObserverInterface.h>
-#include <Alerts/AlertObserverInterface.h>
 #include <AVSCommon/Utils/Threading/Executor.h>
 #include <CBLAuthDelegate/CBLAuthRequesterInterface.h>
 
@@ -58,7 +57,7 @@ public:
 
     void onSettingChanged(const std::string& key, const std::string& value) override;
 
-    // @name SpeakerManagerObserverInterface Functions
+    /// @name SpeakerManagerObserverInterface Functions
     /// @{
     void onSpeakerSettingsChanged(
         const avsCommon::sdkInterfaces::SpeakerManagerObserverInterface::Source& source,
@@ -66,7 +65,7 @@ public:
         const avsCommon::sdkInterfaces::SpeakerInterface::SpeakerSettings& settings) override;
     /// }
 
-    // @name NotificationsObserverInterface Functions
+    /// @name NotificationsObserverInterface Functions
     /// @{
     void onSetIndicator(avsCommon::avs::IndicatorState state) override;
     /// }

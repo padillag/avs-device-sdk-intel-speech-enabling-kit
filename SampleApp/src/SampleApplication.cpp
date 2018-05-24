@@ -204,7 +204,7 @@ std::unique_ptr<SampleApplication> SampleApplication::create(
         ConsolePrinter::simplePrint("SampleApplication initialized successfully");
     }
     if (!ignoreSigpipeSignals()) {
-        ConsolePrinter::simplePrint("Failed to set a signal handler for SIGPIPE");
+        ACSDK_CRITICAL(LX("Failed to set a signal handler for SIGPIPE"));
         return nullptr;
     }
 
@@ -215,8 +215,7 @@ SampleApplication::AdapterRegistration::AdapterRegistration(
     const std::string& playerId,
     ExternalMediaPlayer::AdapterCreateFunction createFunction) {
     if (m_adapterToCreateFuncMap.find(playerId) != m_adapterToCreateFuncMap.end()) {
-        std::string errorStr = "WARNING:Adapter already exists for playerId " + playerId;
-        alexaClientSDK::sampleApp::ConsolePrinter::simplePrint(errorStr);
+        ACSDK_WARN(LX("Adapter already exists").d("playerID", playerId));
     }
 
     m_adapterToCreateFuncMap[playerId] = createFunction;
@@ -451,7 +450,6 @@ bool SampleApplication::initialize(
     std::shared_ptr<avsCommon::utils::libcurlUtils::HttpPut> httpPut =
         avsCommon::utils::libcurlUtils::HttpPut::create();
 
-
     /*
      * Creating the UI component that observes various components and prints to the console accordingly.
      */
@@ -533,7 +531,6 @@ bool SampleApplication::initialize(
             m_audioMediaPlayer,
             m_alertsMediaPlayer,
             m_notificationsMediaPlayer,
-
             m_ringtoneMediaPlayer,
             speakSpeaker,
             audioSpeaker,
@@ -734,16 +731,10 @@ bool SampleApplication::initialize(
 
 #endif
 
-/*
-#ifdef KWD_HARDWARE
-    bool startPaStream = false;
-#else
-    bool startPaStream = true;
-#endif
-*/
+
 
     // If wake word is enabled, then creating the interaction manager with a wake word audio provider.
-   m_interactionManager = std::make_shared<alexaClientSDK::sampleApp::InteractionManager>(
+    m_interactionManager = std::make_shared<alexaClientSDK::sampleApp::InteractionManager>(
         client,
         micWrapper,
         userInterfaceManager,

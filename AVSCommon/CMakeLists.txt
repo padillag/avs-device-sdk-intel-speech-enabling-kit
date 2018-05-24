@@ -28,6 +28,8 @@ add_library(AVSCommon SHARED
     AVS/src/HandlerAndPolicy.cpp
     AVS/src/MessageRequest.cpp
     AVS/src/NamespaceAndName.cpp
+    Utils/src/Bluetooth/SDPRecords.cpp
+    Utils/src/BluetoothEventBus.cpp
     Utils/src/Configuration/ConfigurationNode.cpp
     Utils/src/DeviceInfo.cpp
     Utils/src/Executor.cpp

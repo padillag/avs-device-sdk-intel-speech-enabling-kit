@@ -233,6 +233,9 @@ cat << EOF > "$CONFIG_FILE"
     "notifications":{
         "databaseFilePath":"$CONFIG_DB_PATH/notifications.db"
     },
+    "bluetooth" : {
+        "databaseFilePath":"$CONFIG_DB_PATH/bluetooth.db"
+    },
     "cblAuthDelegate":{
         "databaseFilePath":"$CONFIG_DB_PATH/cblAuthDelegate.db"
     },
