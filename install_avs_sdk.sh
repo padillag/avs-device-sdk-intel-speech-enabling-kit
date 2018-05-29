@@ -364,7 +364,7 @@ apt install -y \
 check_error "Failed to install of the dependencies"
 
 echo_info "Installing Python dependencies"
-pip install flask requests
+pip install flask requests commentjson
 check_error "Failed to install Python dependencies"
 
 if [[ $use_prebuilt -eq 1 ]] ; then
@@ -614,7 +614,7 @@ fi
 
 echo "#!/bin/bash" > $startsample_script
 echo "cd $sdk_build/SampleApp/src/" >> $startsample_script
-echo "TZ=UTC ./SampleApp $config_dest" >> $startsample_script
+echo "TZ=UTC ./SampleApp $config_dest DEBUG9 hw:0" >> $startsample_script
 
 add_modules
 
