@@ -616,6 +616,8 @@ echo "#!/bin/bash" > $startsample_script
 echo "cd $sdk_build/SampleApp/src/" >> $startsample_script
 echo "TZ=UTC ./SampleApp $config_dest DEBUG9 hw:0" >> $startsample_script
 
+chmod a+x $startsample_script
+
 add_modules
 
 generate_json_config
