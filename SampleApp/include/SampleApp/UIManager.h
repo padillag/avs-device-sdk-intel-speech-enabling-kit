@@ -25,6 +25,7 @@
 #include <AVSCommon/SDKInterfaces/SingleSettingObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/SpeakerInterface.h>
 #include <AVSCommon/SDKInterfaces/SpeakerManagerObserverInterface.h>
+#include <Alerts/AlertObserverInterface.h>
 #include <AVSCommon/Utils/Threading/Executor.h>
 #include <CBLAuthDelegate/CBLAuthRequesterInterface.h>
 
@@ -44,7 +45,7 @@ class UIManager
         , public avsCommon::sdkInterfaces::SpeakerManagerObserverInterface
         , public avsCommon::sdkInterfaces::NotificationsObserverInterface
         , public authorization::cblAuthDelegate::CBLAuthRequesterInterface 
-	, public alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface{
+	    , public alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface{
 public:
     /**
      * Constructor.

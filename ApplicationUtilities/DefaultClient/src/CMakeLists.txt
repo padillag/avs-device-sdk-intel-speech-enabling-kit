@@ -4,7 +4,7 @@ add_definitions("-DACSDK_LOG_MODULE=defaultClient")
 add_library(DefaultClient SHARED
     DefaultClient.cpp)
 target_include_directories(DefaultClient PUBLIC
-    "${DefaultClient_SOURCE_DIR}/include")
+    "${DefaultClient_SOURCE_DIR}/include" "${MRM_SOURCE_DIR}/include")
 
 
 target_link_libraries(DefaultClient
@@ -29,5 +29,10 @@ target_link_libraries(DefaultClient
 if (COMMS)
     target_link_libraries(DefaultClient CallManager)
 endif()
+
+if (MRM)
+    target_link_libraries(DefaultClient MRM MRMHandler)
+endif()
+
 # install target
 asdk_install()
