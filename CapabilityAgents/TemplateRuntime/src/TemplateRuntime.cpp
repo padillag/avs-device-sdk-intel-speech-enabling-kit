@@ -17,6 +17,7 @@
 
 #include <rapidjson/error/en.h>
 
+#include <AVSCommon/AVS/CapabilityConfiguration.h>
 #include <AVSCommon/Utils/JSON/JSONUtils.h>
 #include <AVSCommon/Utils/Logger/Logger.h>
 
@@ -30,6 +31,14 @@ using namespace avsCommon::avs;
 using namespace avsCommon::sdkInterfaces;
 using namespace avsCommon::utils;
 using namespace avsCommon::utils::json;
+
+/// TemplateRuntime capability constants
+/// TemplateRuntime interface type
+static const std::string TEMPLATERUNTIME_CAPABILITY_INTERFACE_TYPE = "AlexaInterface";
+/// TemplateRuntime interface name
+static const std::string TEMPLATERUNTIME_CAPABILITY_INTERFACE_NAME = "TemplateRuntime";
+/// TemplateRuntime interface version
+static const std::string TEMPLATERUNTIME_CAPABILITY_INTERFACE_VERSION = "1.0";
 
 /// String to identify log entries originating from this file.
 static const std::string TAG{"TemplateRuntime"};
@@ -73,6 +82,13 @@ static const std::chrono::milliseconds AUDIO_FINISHED_TIMEOUT_MS{2000};
 
 /// Timeout for clearing the RenderPlayerInfo display card when AudioPlayer is in STOPPED/PAUSED state.
 static const std::chrono::milliseconds AUDIO_STOPPED_PAUSED_TIMEOUT_MS{60000};
+
+/**
+ * Creates the TemplateRuntime capability configuration.
+ *
+ * @return The TemplateRuntime capability configuration.
+ */
+static std::shared_ptr<avsCommon::avs::CapabilityConfiguration> getTemplateRuntimeCapabilityConfiguration();
 
 std::shared_ptr<TemplateRuntime> TemplateRuntime::create(
     std::shared_ptr<avsCommon::sdkInterfaces::AudioPlayerInterface> audioPlayerInterface,
@@ -201,6 +217,16 @@ TemplateRuntime::TemplateRuntime(
         m_state{TemplateRuntime::State::IDLE},
         m_audioPlayerInterface{audioPlayerInterface},
         m_focusManager{focusManager} {
+    m_capabilityConfigurations.insert(getTemplateRuntimeCapabilityConfiguration());
+}
+
+std::shared_ptr<CapabilityConfiguration> getTemplateRuntimeCapabilityConfiguration() {
+    std::unordered_map<std::string, std::string> configMap;
+    configMap.insert({CAPABILITY_INTERFACE_TYPE_KEY, TEMPLATERUNTIME_CAPABILITY_INTERFACE_TYPE});
+    configMap.insert({CAPABILITY_INTERFACE_NAME_KEY, TEMPLATERUNTIME_CAPABILITY_INTERFACE_NAME});
+    configMap.insert({CAPABILITY_INTERFACE_VERSION_KEY, TEMPLATERUNTIME_CAPABILITY_INTERFACE_VERSION});
+
+    return std::make_shared<CapabilityConfiguration>(configMap);
 }
 
 void TemplateRuntime::doShutdown() {
@@ -559,6 +585,141 @@ void TemplateRuntime::executeOnFocusChangedEvent(avsCommon::avs::FocusState newF
                     nextState = TemplateRuntime::State::IDLE;
                     break;
             }
+}
+
+void TemplateRuntime::executeClearCard() {
+    if (m_lastDisplayedDirective) {
+        if (m_lastDisplayedDirective->directive->getName() == RENDER_TEMPLATE) {
+            executeRenderTemplateCallbacks(true);
+        } else {
+            executeRenderPlayerInfoCallbacks(true);
+        }
+    }
+}
+
+void TemplateRuntime::executeStartTimer(std::chrono::milliseconds timeout) {
+    if (TemplateRuntime::State::DISPLAYING == m_state) {
+        ACSDK_DEBUG3(LX("executeStartTimer").d("timeoutInMilliseconds", timeout.count()));
+        m_clearDisplayTimer.start(timeout, [this] { m_executor.submit([this] { executeTimerEvent(); }); });
+    }
+}
+
+void TemplateRuntime::executeStopTimer() {
+    ACSDK_DEBUG3(LX("executeStopTimer"));
+    m_clearDisplayTimer.stop();
+}
+
+/*
+ * A state machine is used to acquire and release the visual channel from the visual @c FocusManager.  The state machine
+ * has five @c State, and four events as listed below:
+ *
+ * displayCard - This event happens when the TempateRuntime is ready to notify its observers to display a
+ * displayCard.
+ *
+ * focusChanged - This event happens when the @c FocusManager notifies a change in @c FocusState in the visual
+ * channel.
+ *
+ * timer - This event happens when m_clearDisplayTimer expires and needs to notify its observers to clear the
+ * displayCard.
+ *
+ * cardCleared - This event happens when @c displayCardCleared() is called to notify @c TemplateRuntime the device has
+ * cleared the screen.
+ *
+ * Each state transition may result in one or more of the following actions:
+ * (A) Acquire channel
+ * (B) Release channel
+ * (C) Notify observers to display displayCard
+ * (D) Notify observers to clear displayCard
+ * (E) Log error about unexpected focusChanged event.
+ *
+ * Below is the state table illustrating the state transition and its action.  NC means no change in state.
+ *
+ *                                              E  V  E  N  T  S
+ *                -----------------------------------------------------------------------------------------
+ *  Current State | displayCard  | timer          | focusChanged::NONE | focusChanged::FG/BG | cardCleared
+ * --------------------------------------------------------------------------------------------------------
+ * | IDLE         | ACQUIRING(A) | NC             | NC                 | RELEASING(B&E)      | NC
+ * | ACQUIRING    | NC           | NC             | IDLE(E)            | DISPLAYING(C)       | NC
+ * | DISPLAYING   | NC(C)        | RELEASING(B&D) | IDLE(D)            | DISPLAYING(C)       | RELEASING(B)
+ * | RELEASING    | REACQUIRING  | NC             | IDLE               | NC(B&E)             | NC
+ * | REACQUIRING  | NC           | NC             | ACQUIRING(A)       | RELEASING(B&E)      | NC
+ * --------------------------------------------------------------------------------------------------------
+ *
+ */
+
+std::string TemplateRuntime::stateToString(const TemplateRuntime::State state) {
+    switch (state) {
+        case TemplateRuntime::State::IDLE:
+            return "IDLE";
+        case TemplateRuntime::State::ACQUIRING:
+            return "ACQUIRING";
+        case TemplateRuntime::State::DISPLAYING:
+            return "DISPLAYING";
+        case TemplateRuntime::State::RELEASING:
+            return "RELEASING";
+        case TemplateRuntime::State::REACQUIRING:
+            return "REACQUIRING";
+    }
+    return "UNKNOWN";
+}
+
+void TemplateRuntime::executeTimerEvent() {
+    State nextState = m_state;
+
+    switch (m_state) {
+        case TemplateRuntime::State::DISPLAYING:
+            executeClearCard();
+            m_focusManager->releaseChannel(CHANNEL_NAME, shared_from_this());
+            nextState = TemplateRuntime::State::RELEASING;
+            break;
+
+        case TemplateRuntime::State::IDLE:
+        case TemplateRuntime::State::ACQUIRING:
+        case TemplateRuntime::State::RELEASING:
+        case TemplateRuntime::State::REACQUIRING:
+            // Do Nothing.
+            break;
+    }
+    ACSDK_DEBUG3(
+        LX("executeTimerEvent").d("prevState", stateToString(m_state)).d("nextState", stateToString(nextState)));
+    m_state = nextState;
+}
+
+void TemplateRuntime::executeOnFocusChangedEvent(avsCommon::avs::FocusState newFocus) {
+    ACSDK_DEBUG5(LX("executeOnFocusChangedEvent").d("prevFocus", m_focus).d("newFocus", newFocus));
+
+    bool weirdFocusState = false;
+    State nextState = m_state;
+    m_focus = newFocus;
+
+    switch (m_state) {
+        case TemplateRuntime::State::IDLE:
+            // This is weird.  We shouldn't be getting any focus updates in Idle.
+            switch (newFocus) {
+                case FocusState::FOREGROUND:
+                case FocusState::BACKGROUND:
+                    weirdFocusState = true;
+                    break;
+                case FocusState::NONE:
+                    // Do nothing.
+                    break;
+            }
+            break;
+        case TemplateRuntime::State::ACQUIRING:
+            switch (newFocus) {
+                case FocusState::FOREGROUND:
+                case FocusState::BACKGROUND:
+                    executeDisplayCard();
+                    nextState = TemplateRuntime::State::DISPLAYING;
+                    break;
+                case FocusState::NONE:
+                    ACSDK_ERROR(LX("executeOnFocusChangedEvent")
+                                    .d("prevState", stateToString(m_state))
+                                    .d("nextFocus", newFocus)
+                                    .m("Unexpected focus state event."));
+                    nextState = TemplateRuntime::State::IDLE;
+                    break;
+            }
             break;
         case TemplateRuntime::State::DISPLAYING:
             switch (newFocus) {
@@ -658,6 +819,11 @@ void TemplateRuntime::executeCardClearedEvent() {
     ACSDK_DEBUG3(
         LX("executeCardClearedEvent").d("prevState", stateToString(m_state)).d("nextState", stateToString(nextState)));
     m_state = nextState;
+}
+
+std::unordered_set<std::shared_ptr<avsCommon::avs::CapabilityConfiguration>> TemplateRuntime::
+    getCapabilityConfigurations() {
+    return m_capabilityConfigurations;
 }
 
 }  // namespace templateRuntime

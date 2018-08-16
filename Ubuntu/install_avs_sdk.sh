@@ -79,9 +79,6 @@ fi
 cd $avs_top
 
 pushd $avs_top/avs-device-sdk-intel-speech-enabling-kit
-if [[ ! -d application-necessities ]]; then
-tar xvf application-necessities.tar.gz -C $avs_top
-fi
 cp Ubuntu/automated_install.sh $avs_top
 cat Ubuntu/startavs|sed "s#\\[AVSROOT\\]#$avs_top"#>$avs_top/startavs
 chmod a+x $avs_top/startavs

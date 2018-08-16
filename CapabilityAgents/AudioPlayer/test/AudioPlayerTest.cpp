@@ -1638,6 +1638,175 @@ TEST_F(AudioPlayerTest, testProgressReportIntervalElapsedIntervalLessThanOffset)
     ASSERT_TRUE(result);
 }
 
+/**
+ * Test @c onPlaybackError and expect AudioPlayer to change to STOPPED state and that it would go back to PLAYING state
+ * when a new REPLACE_ALL Play directive comes in.
+ */
+
+TEST_F(AudioPlayerTest, testPlayAfterOnPlaybackError) {
+    EXPECT_CALL(*(m_mockMediaPlayer.get()), getOffset(_))
+        .WillRepeatedly(Return(m_mockMediaPlayer->getOffset(m_mockMediaPlayer->getCurrentSourceId())));
+    sendPlayDirective();
+    ASSERT_TRUE(m_testAudioPlayerObserver->waitFor(PlayerActivity::PLAYING, WAIT_TIMEOUT));
+    EXPECT_CALL(*(m_mockFocusManager.get()), releaseChannel(CHANNEL_NAME, _))
+        .Times(1)
+        .WillOnce(InvokeWithoutArgs(this, &AudioPlayerTest::wakeOnReleaseChannel));
+    m_audioPlayer->onPlaybackError(
+        m_mockMediaPlayer->getCurrentSourceId(), ErrorType::MEDIA_ERROR_UNKNOWN, "TEST_ERROR");
+    ASSERT_TRUE(m_testAudioPlayerObserver->waitFor(PlayerActivity::STOPPED, WAIT_TIMEOUT));
+    ASSERT_EQ(std::future_status::ready, m_wakeReleaseChannelFuture.wait_for(WAIT_TIMEOUT));
+    m_audioPlayer->onFocusChanged(FocusState::NONE);
+
+    // send a REPLACE_ALL Play directive to see if AudioPlayer can still play the new item
+    EXPECT_CALL(*(m_mockMediaPlayer.get()), play(_)).Times(1);
+    auto avsMessageHeader = std::make_shared<AVSMessageHeader>(NAMESPACE_AUDIO_PLAYER, NAME_PLAY, MESSAGE_ID_TEST_2);
+
+    std::shared_ptr<AVSDirective> playDirective =
+        AVSDirective::create("", avsMessageHeader, REPLACE_ALL_PAYLOAD_TEST, m_attachmentManager, CONTEXT_ID_TEST_2);
+
+    m_wakeAcquireChannelPromise = std::promise<void>();
+    m_wakeAcquireChannelFuture = m_wakeAcquireChannelPromise.get_future();
+    EXPECT_CALL(*(m_mockFocusManager.get()), acquireChannel(CHANNEL_NAME, _, NAMESPACE_AUDIO_PLAYER))
+        .Times(1)
+        .WillOnce(InvokeWithoutArgs(this, &AudioPlayerTest::wakeOnAcquireChannel));
+    m_audioPlayer->CapabilityAgent::preHandleDirective(playDirective, std::move(m_mockDirectiveHandlerResult));
+    m_audioPlayer->CapabilityAgent::handleDirective(MESSAGE_ID_TEST_2);
+    ASSERT_EQ(std::future_status::ready, m_wakeAcquireChannelFuture.wait_for(WAIT_TIMEOUT));
+    m_audioPlayer->onFocusChanged(FocusState::FOREGROUND);
+    ASSERT_TRUE(m_testAudioPlayerObserver->waitFor(PlayerActivity::PLAYING, WAIT_TIMEOUT));
+}
+
+/**
+ * Test @c onPlaybackStarted calls the @c PlaybackRouter
+ */
+TEST_F(AudioPlayerTest, testPlaybackStartedSwitchesHandler) {
+    EXPECT_CALL(*m_mockPlaybackRouter, switchToDefaultHandler());
+    sendPlayDirective();
+}
+
+/**
+ * Test to verify that ProgressReportDelayElapsed Event is sent correctly.  This test is timing sensitive.
+ */
+TEST_F(AudioPlayerTest, testProgressReportDelayElapsed) {
+    m_expectedMessages.insert({PROGRESS_REPORT_DELAY_ELAPSED_NAME, 0});
+
+    EXPECT_CALL(*(m_mockMessageSender.get()), sendMessage(_))
+        .Times(AtLeast(1))
+        .WillRepeatedly(Invoke([this](std::shared_ptr<avsCommon::avs::MessageRequest> request) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            verifyMessageMap(request, &m_expectedMessages);
+            m_messageSentTrigger.notify_one();
+        }));
+
+    sendPlayDirective(OFFSET_IN_MILLISECONDS_BEFORE_PROGRESS_REPORT_DELAY);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(PROGRESS_REPORT_DELAY));
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    auto result = m_messageSentTrigger.wait_for(lock, WAIT_TIMEOUT, [this] {
+        for (auto messageStatus : m_expectedMessages) {
+            if (messageStatus.second != 1) {
+                return false;
+            }
+        }
+        return true;
+    });
+    ASSERT_TRUE(result);
+}
+
+/**
+ * Test to verify that ProgressReportDelayElapsed Event is not sent when the delay is less than the offset.  This test
+ * is timing sensitive.
+ */
+TEST_F(AudioPlayerTest, testProgressReportDelayElapsedDelayLessThanOffset) {
+    m_expectedMessages.insert({PROGRESS_REPORT_DELAY_ELAPSED_NAME, 0});
+
+    EXPECT_CALL(*(m_mockMessageSender.get()), sendMessage(_))
+        .Times(AtLeast(1))
+        .WillRepeatedly(Invoke([this](std::shared_ptr<avsCommon::avs::MessageRequest> request) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            verifyMessageMap(request, &m_expectedMessages);
+            m_messageSentTrigger.notify_one();
+        }));
+
+    sendPlayDirective(OFFSET_IN_MILLISECONDS_AFTER_PROGRESS_REPORT_DELAY);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(PROGRESS_REPORT_DELAY));
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    auto result = m_messageSentTrigger.wait_for(lock, WAIT_TIMEOUT, [this] {
+        for (auto messageStatus : m_expectedMessages) {
+            if (messageStatus.second != 0) {
+                return false;
+            }
+        }
+        return true;
+    });
+    ASSERT_TRUE(result);
+}
+
+/**
+ * Test to verify that ProgressReportIntervalElapsed Event is sent when the interval is less than the offset.  There
+ * will be a ProgressReportIntervalElapsed Event at 100, 200 and 300 ms.  This test is timing sensitive.
+ */
+TEST_F(AudioPlayerTest, testProgressReportIntervalElapsed) {
+    m_expectedMessages.insert({PROGRESS_REPORT_INTERVAL_ELAPSED_NAME, 0});
+
+    EXPECT_CALL(*(m_mockMessageSender.get()), sendMessage(_))
+        .Times(AtLeast(1))
+        .WillRepeatedly(Invoke([this](std::shared_ptr<avsCommon::avs::MessageRequest> request) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            verifyMessageMap(request, &m_expectedMessages);
+            m_messageSentTrigger.notify_one();
+        }));
+
+    sendPlayDirective(OFFSET_IN_MILLISECONDS_BEFORE_PROGRESS_REPORT_INTERVAL);
+
+    std::this_thread::sleep_for(TIME_FOR_TWO_AND_A_HALF_INTERVAL_PERIODS);
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    auto result = m_messageSentTrigger.wait_for(lock, WAIT_TIMEOUT, [this] {
+        for (auto messageStatus : m_expectedMessages) {
+            if (messageStatus.second != 3) {
+                return false;
+            }
+        }
+        return true;
+    });
+    ASSERT_TRUE(result);
+}
+
+/**
+ * Test to verify that ProgressReportIntervalElapsed Event is sent when the interval is less than the offset.  There
+ * will be a ProgressReportIntervalElapsed Event at 200 and 300 ms.  This test is timing sensitive.
+ */
+TEST_F(AudioPlayerTest, testProgressReportIntervalElapsedIntervalLessThanOffset) {
+    m_expectedMessages.insert({PROGRESS_REPORT_INTERVAL_ELAPSED_NAME, 0});
+
+    EXPECT_CALL(*(m_mockMessageSender.get()), sendMessage(_))
+        .Times(AtLeast(1))
+        .WillRepeatedly(Invoke([this](std::shared_ptr<avsCommon::avs::MessageRequest> request) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            verifyMessageMap(request, &m_expectedMessages);
+            m_messageSentTrigger.notify_one();
+        }));
+
+    sendPlayDirective(OFFSET_IN_MILLISECONDS_AFTER_PROGRESS_REPORT_INTERVAL);
+
+    std::this_thread::sleep_for(TIME_FOR_TWO_AND_A_HALF_INTERVAL_PERIODS);
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    auto result = m_messageSentTrigger.wait_for(lock, WAIT_TIMEOUT, [this] {
+        for (auto messageStatus : m_expectedMessages) {
+            if (messageStatus.second != 2) {
+                return false;
+            }
+        }
+        return true;
+    });
+    ASSERT_TRUE(result);
+}
+
 }  // namespace test
 }  // namespace audioPlayer
 }  // namespace capabilityAgents

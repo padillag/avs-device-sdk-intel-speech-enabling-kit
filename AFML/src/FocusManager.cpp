@@ -33,10 +33,10 @@ static const std::string TAG("FocusManager");
  */
 #define LX(event) alexaClientSDK::avsCommon::utils::logger::LogEntry(TAG, event)
 
-const std::vector<FocusManager::ChannelConfiguration> FocusManager::DEFAULT_AUDIO_CHANNELS = {
-    {FocusManagerInterface::DIALOG_CHANNEL_NAME, FocusManagerInterface::DIALOG_CHANNEL_PRIORITY},
-    {FocusManagerInterface::ALERTS_CHANNEL_NAME, FocusManagerInterface::ALERTS_CHANNEL_PRIORITY},
-    {FocusManagerInterface::CONTENT_CHANNEL_NAME, FocusManagerInterface::CONTENT_CHANNEL_PRIORITY}};
+FocusManager::FocusManager(
+    const std::vector<ChannelConfiguration> channelConfigurations,
+    std::shared_ptr<ActivityTrackerInterface> activityTrackerInterface) :
+        m_activityTracker{activityTrackerInterface} {
 
 const std::vector<FocusManager::ChannelConfiguration> FocusManager::DEFAULT_VISUAL_CHANNELS = {
     {FocusManagerInterface::VISUAL_CHANNEL_NAME, FocusManagerInterface::VISUAL_CHANNEL_PRIORITY}};
@@ -203,6 +203,7 @@ void FocusManager::stopForegroundActivityHelper(
     if (!foregroundChannel->hasObserver()) {
         return;
     }
+
     setChannelFocus(foregroundChannel, FocusState::NONE);
 
     // Lock here to update internal state which stopForegroundActivity may concurrently access.
@@ -261,6 +262,23 @@ void FocusManager::notifyActivityTracker() {
         m_activityTracker->notifyOfActivityUpdates(m_activityUpdates);
     }
     m_activityUpdates.clear();
+}
+
+const std::vector<FocusManager::ChannelConfiguration> FocusManager::getDefaultAudioChannels() {
+    static const std::vector<FocusManager::ChannelConfiguration> defaultAudioChannels = {
+        {FocusManagerInterface::DIALOG_CHANNEL_NAME, FocusManagerInterface::DIALOG_CHANNEL_PRIORITY},
+        {FocusManagerInterface::ALERTS_CHANNEL_NAME, FocusManagerInterface::ALERTS_CHANNEL_PRIORITY},
+        {FocusManagerInterface::COMMUNICATIONS_CHANNEL_NAME, FocusManagerInterface::COMMUNICATIONS_CHANNEL_PRIORITY},
+        {FocusManagerInterface::CONTENT_CHANNEL_NAME, FocusManagerInterface::CONTENT_CHANNEL_PRIORITY}};
+
+    return defaultAudioChannels;
+}
+
+const std::vector<FocusManager::ChannelConfiguration> FocusManager::getDefaultVisualChannels() {
+    static const std::vector<FocusManager::ChannelConfiguration> defaultVisualChannels = {
+        {FocusManagerInterface::VISUAL_CHANNEL_NAME, FocusManagerInterface::VISUAL_CHANNEL_PRIORITY}};
+
+    return defaultVisualChannels;
 }
 
 }  // namespace afml

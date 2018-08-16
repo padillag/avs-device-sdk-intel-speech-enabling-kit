@@ -132,4 +132,5 @@ private:
 }  // namespace sampleApp
 }  // namespace alexaClientSDK
 
+
 #endif  // ALEXA_CLIENT_SDK_SAMPLEAPP_INCLUDE_SAMPLEAPP_PORTAUDIOMICROPHONEWRAPPER_H_

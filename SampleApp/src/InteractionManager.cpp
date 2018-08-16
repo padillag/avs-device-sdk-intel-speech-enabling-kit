@@ -29,24 +29,27 @@ InteractionManager::InteractionManager(
     capabilityAgents::aip::AudioProvider wakeWordAudioProvider,
     std::shared_ptr<esp::ESPDataProviderInterface> espProvider,
     std::shared_ptr<esp::ESPDataModifierInterface> espModifier,
-        bool startPaStream) :
+    std::shared_ptr<avsCommon::sdkInterfaces::CallManagerInterface> callManager,
+	bool startPaStream
+	) :
 	    RequiresShutdown{"InteractionManager"},
         m_client{client},
         m_micWrapper{micWrapper},
         m_userInterface{userInterface},
         m_espProvider{espProvider},
         m_espModifier{espModifier},
+        m_callManager{callManager},
         m_holdToTalkAudioProvider{holdToTalkAudioProvider},
         m_tapToTalkAudioProvider{tapToTalkAudioProvider},
         m_wakeWordAudioProvider{wakeWordAudioProvider},
         m_isHoldOccurring{false},
         m_isTapOccurring{false},
         m_isMicOn{true}
-{
-    if(startPaStream) {
-        m_micWrapper->startStreamingMicrophoneData();
-    }
-}
+		{ 
+		   if(startPaStream) {
+        	m_micWrapper->startStreamingMicrophoneData();
+	    }
+	};
 
 void InteractionManager::begin() {
     m_executor.submit([this]() {
@@ -57,6 +60,10 @@ void InteractionManager::begin() {
 
 void InteractionManager::help() {
     m_executor.submit([this]() { m_userInterface->printHelpScreen(); });
+}
+
+void InteractionManager::limitedHelp() {
+    m_executor.submit([this]() { m_userInterface->printLimitedHelp(); });
 }
 
 void InteractionManager::settings() {
@@ -124,7 +131,6 @@ void InteractionManager::tap() {
             m_isTapOccurring = false;
             m_client->notifyOfTapToTalkEnd();
         }
-
     });
 }
 
@@ -250,6 +256,36 @@ void InteractionManager::setESPAmbientEnergy(const std::string& ambientEnergy) {
             }
         } else {
             m_userInterface->printESPNotSupported();
+        }
+    });
+}
+
+void InteractionManager::commsControl() {
+    m_executor.submit([this]() {
+        if (m_client->isCommsEnabled()) {
+            m_userInterface->printCommsControlScreen();
+        } else {
+            m_userInterface->printCommsNotSupported();
+        }
+    });
+}
+
+void InteractionManager::acceptCall() {
+    m_executor.submit([this]() {
+        if (m_client->isCommsEnabled()) {
+            m_client->acceptCommsCall();
+        } else {
+            m_userInterface->printCommsNotSupported();
+        }
+    });
+}
+
+void InteractionManager::stopCall() {
+    m_executor.submit([this]() {
+        if (m_client->isCommsEnabled()) {
+            m_client->stopCommsCall();
+        } else {
+            m_userInterface->printCommsNotSupported();
         }
     });
 }

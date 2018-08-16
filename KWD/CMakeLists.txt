@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(KWD LANGUAGES CXX)
 
 add_subdirectory("src")
-acsdk_add_test_subdirectory_if_allowed()
+add_subdirectory("test")
 
 if(AMAZON_KEY_WORD_DETECTOR)
     add_subdirectory("Amazon")
@@ -16,6 +16,7 @@ endif()
 if(SENSORY_KEY_WORD_DETECTOR)
     add_subdirectory("Sensory")
 endif()
-if(HARDWARE_KEY_WORD_DETECTOR)
-    add_subdirectory("Hardware")
+
+if(KWD)
+    add_subdirectory("KWDProvider")
 endif()

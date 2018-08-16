@@ -68,7 +68,7 @@ public:
         std::shared_ptr<avsCommon::sdkInterfaces::HTTPContentFetcherInterfaceFactoryInterface> contentFetcherFactory =
             nullptr,
         avsCommon::sdkInterfaces::SpeakerInterface::Type type =
-            avsCommon::sdkInterfaces::SpeakerInterface::Type::AVS_SYNCED,
+            avsCommon::sdkInterfaces::SpeakerInterface::Type::AVS_SPEAKER_VOLUME,
         std::string name = "");
 
     /**
@@ -115,10 +115,17 @@ public:
     GstElement* getDecoder() const override;
     GstElement* getPipeline() const override;
     guint queueCallback(const std::function<gboolean()>* callback) override;
+    guint attachSource(GSource* source) override;
+    gboolean removeSource(guint tag) override;
     /// @}
 
     /// @name Overriden UrlContentToAttachmentConverter::ErrorObserverInterface methods.
     /// @{
+    void onError() override;
+    /// @}
+
+    void doShutdown() override;
+
     void onError() override;
     /// @}
 
@@ -138,7 +145,7 @@ private:
      * @li @c pipeline The pipeline is a bin consisting of the @c appsrc, the @c decoder, the @c converter, and the
      * @c audioSink.
      *
-     * The data flow through the elements is appsrc -> decoder -> decodedQueue -> converter -> volume -> audioSink.
+     * The data flow through the elements is appsrc -> decoder ->  converter -> volume -> audioSink.
      * Ideally we would want to use playsink or playbin directly to automate as much as possible. However, this
      * causes problems with multiple pipelines and volume settings in pulse audio. Pending further investigation.
      */
@@ -193,18 +200,16 @@ private:
         std::string name);
 
     /**
+     * The worker loop to run the glib mainloop.
+     */
+    void workerLoop();
+
+    /**
      * Initializes GStreamer and starts a main event loop on a new thread.
      *
      * @return @c SUCCESS if initialization was successful. Else @c FAILURE.
      */
     bool init();
-
-    /**
-     * Worker thread handler for setting m_workerThreadId.
-     *
-     * @return Whether the callback should be called back when worker thread is once again idle (always @c false).
-     */
-    static gboolean onSetWorkerThreadId(gpointer pointer);
 
     /**
      * Notification of a callback to execute on the worker thread.
@@ -530,6 +535,9 @@ private:
 
     /// Bus Id to track the bus.
     guint m_busWatchId;
+
+    /// The context of the glib mainloop.
+    GMainContext* m_workerContext;
 
     /// Flag to indicate when a playback started notification has been sent to the observer.
     bool m_playbackStartedSent;

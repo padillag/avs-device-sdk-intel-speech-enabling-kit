@@ -30,7 +30,7 @@ namespace alerts {
 namespace storage {
 
 /**
- * An implementation that allows us to store alerts using SQLite.
+ * An implementation that allows us to store alerts using SQLite. This class is not thread safe.
  *
  * TODO: ACSDK-390 Investigate adding an abstraction layer between this class and the AlertStorageInterface,
  * where the middle layer is expressed purely in SQL.
@@ -67,6 +67,7 @@ public:
 
     bool erase(std::shared_ptr<Alert> alert) override;
 
+    bool bulkErase(const std::list<std::shared_ptr<Alert>>& alertList) override;
     bool clearDatabase() override;
 
     /**

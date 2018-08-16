@@ -220,19 +220,48 @@ bool TimeUtils::getCurrentUnixTime(int64_t* currentTime) {
     return now >= 0;
 }
 
-bool TimeUtils::convertTimeToUtcIso8601Rfc3339(const struct timeval& timeVal, std::string* iso8601TimeString) {
+bool TimeUtils::convertTimeToUtcIso8601Rfc3339(
+    const std::chrono::high_resolution_clock::time_point& tp,
+    std::string* iso8601TimeString) {
     // The length of the RFC 3339 string for the time is maximum 28 characters, include an extra byte for the '\0'
     // terminator.
     char buf[29];
     memset(buf, 0, sizeof(buf));
 
     // Need to assign it to time_t since time_t in some platforms is long long
-    // and timeVal.tv_sec is long in some platforms
-    const time_t timeSecs = timeVal.tv_sec;
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch());
+    auto sec = std::chrono::duration_cast<std::chrono::seconds>(ms);
+    const time_t timeSecs = static_cast<time_t>(sec.count());
 
     std::tm utcTm;
     if (!m_safeCTimeAccess->getGmtime(timeSecs, &utcTm)) {
         ACSDK_ERROR(LX("convertTimeToUtcIso8601Rfc3339").m("cannot retrieve tm struct"));
+    // it's possible for std::strftime to correctly return length = 0, but not with the format string used.  In this
+    // case length == 0 is an error.
+    auto strftimeResult = std::strftime(buf, sizeof(buf) - 1, "%Y-%m-%dT%H:%M:%S", &utcTm);
+    if (strftimeResult == 0) {
+        ACSDK_ERROR(LX("convertTimeToUtcIso8601Rfc3339Failed").m("strftime(..) failed"));
+        return false;
+    }
+
+    std::stringstream millisecondTrailer;
+    millisecondTrailer << buf << "." << std::setfill('0') << std::setw(3) << (timeVal.tv_usec / 1000) << "Z";
+
+    *iso8601TimeString = millisecondTrailer.str();
+    return true;
+}
+
+bool TimeUtils::localtimeOffset(std::time_t* ret) {
+    static const std::chrono::time_point<std::chrono::system_clock> timePoint{std::chrono::hours(24)};
+    auto fixedTime = std::chrono::system_clock::to_time_t(timePoint);
+
+    std::tm utcTm;
+    std::time_t utc;
+    std::tm localTm;
+    std::time_t local;
+    if (!m_safeCTimeAccess->getGmtime(fixedTime, &utcTm) || !convertToLocalTimeT(&utcTm, &utc) ||
+        !m_safeCTimeAccess->getLocaltime(fixedTime, &localTm) || !convertToLocalTimeT(&localTm, &local)) {
+        ACSDK_ERROR(LX("localtimeOffset").m("cannot retrieve tm struct"));
         return false;
     }
 
@@ -245,7 +274,7 @@ bool TimeUtils::convertTimeToUtcIso8601Rfc3339(const struct timeval& timeVal, st
     }
 
     std::stringstream millisecondTrailer;
-    millisecondTrailer << buf << "." << std::setfill('0') << std::setw(3) << (timeVal.tv_usec / 1000) << "Z";
+    millisecondTrailer << buf << "." << std::setfill('0') << std::setw(3) << (ms.count() % 1000) << "Z";
 
     *iso8601TimeString = millisecondTrailer.str();
     return true;

@@ -18,6 +18,10 @@
 
 #include <chrono>
 #include <string>
+#include <utility>
+#include <vector>
+
+#include "HTTPResponse.h"
 
 namespace alexaClientSDK {
 namespace avsCommon {
@@ -53,6 +57,39 @@ public:
         const std::string& data,
         std::chrono::seconds timeout,
         std::string& body) = 0;
+
+    /**
+     * Perform an HTTP Post request returning the response body as a string. This method
+     * blocks for the duration of the request.
+     *
+     * @param url The URL to send the POST to.
+     * @param headerLines vector of strings to add as header lines.
+     * @param data Key, value pairs describing the POST data to send in the request.  This keys and values will
+     * be URL encoded by this method.
+     * @param timeout The maximum amount of time (in seconds) to wait for the request to complete.
+     * @return An object describing the response to the request.
+     */
+    virtual HTTPResponse doPost(
+        const std::string& url,
+        const std::vector<std::string> headerLines,
+        const std::vector<std::pair<std::string, std::string>>& data,
+        std::chrono::seconds timeout) = 0;
+
+    /**
+     * Perform an HTTP Post request returning the response body as a string. This method
+     * blocks for the duration of the request.
+     *
+     * @param url The URL to send the POST to.
+     * @param headerLines vector of strings to add as header lines.
+     * @param data A string containing the POST data to send in the request.
+     * @param timeout The maximum amount of time (in seconds) to wait for the request to complete.
+     * @return An object describing the response to the request.
+     */
+    virtual HTTPResponse doPost(
+        const std::string& url,
+        const std::vector<std::string> headerLines,
+        const std::string& data,
+        std::chrono::seconds timeout) = 0;
 };
 
 }  // namespace libcurlUtils
