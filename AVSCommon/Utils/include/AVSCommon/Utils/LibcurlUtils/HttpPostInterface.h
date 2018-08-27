@@ -35,14 +35,6 @@ public:
     virtual ~HttpPostInterface() = default;
 
     /**
-     * Adds a HTTP Header to the CURL handle
-     *
-     * @param header The HTTP header to add to the POST request.
-     * @returns @c true if the addition was successful @c false otherwise.
-     */
-    virtual bool addHTTPHeader(const std::string& header) = 0;
-
-    /**
      * Perform an HTTP Post request returning the response body as a string. This method blocks for the duration
      * of the request.
      *

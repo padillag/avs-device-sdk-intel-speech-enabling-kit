@@ -291,29 +291,6 @@ void Renderer::executeOnPlaybackFinished(SourceId sourceId) {
     resetSourceId();
     notifyObserver(finalState);
     m_observer = nullptr;
-        }
-
-        finalState = RendererObserverInterface::State::COMPLETED;
-    bool shouldRenderAnotherAudioAsset = true;
-
-    // If we have completed a loop, then update our counters, and determine what to do next.  If the URLs aren't
-    // reachable, m_urls will be empty.
-    if (m_numberOfStreamsRenderedThisLoop >= static_cast<int>(m_urls.size())) {
-        ACSDK_DEBUG5(LX("renderNextAudioAsset")
-                         .d("loopCount", m_loopCount)
-                         .d("nextAudioIndex", m_numberOfStreamsRenderedThisLoop)
-                         .m("Preparing the audio loop counters."));
-
-        if (m_loopCount <= 0) {
-            shouldRenderAnotherAudioAsset = false;
-        } else if (m_loopPause.count() > 0) {
-            std::this_thread::sleep_for(m_loopPause);
-        }
-    }
-
-    resetSourceId();
-    notifyObserver(finalState);
-    m_observer = nullptr;
 }
 
 bool Renderer::renderNextAudioAsset() {
@@ -330,13 +307,10 @@ bool Renderer::renderNextAudioAsset() {
         if (shouldPause()) {
             pause();
         }
-
     }
 
     if (!shouldRenderNext()) {
         return false;
-    } else {
-        ACSDK_DEBUG9(LX("renderNextAudioAsset").m("No more sounds to render."));
     }
 
     play();
@@ -359,7 +333,6 @@ void Renderer::executeOnPlaybackError(
     // This will cause a retry (through Renderer::start) using the same code paths as before, except in this case the
     // urls to render will be empty.
     handlePlaybackError(error);
-    // urls to render will be empty.
 }
 
 void Renderer::notifyObserver(RendererObserverInterface::State state, const std::string& message) {

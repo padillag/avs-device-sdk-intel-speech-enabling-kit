@@ -26,6 +26,7 @@
  *  ############################
  */
 static const size_t PADDING_LENGTH = 8;
+
 namespace alexaClientSDK {
 namespace sampleApp {
 

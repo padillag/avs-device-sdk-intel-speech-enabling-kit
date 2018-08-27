@@ -637,16 +637,6 @@ void SpeakerManager::executeNotifySettingsChanged(
     const std::string& eventName,
     const SpeakerManagerObserverInterface::Source& source,
     const SpeakerInterface::Type& type) {
-
-    // Only send an event if the AVS_SYNCED settings changed.
-    }
-}
-
-void SpeakerManager::executeNotifySettingsChanged(
-    const SpeakerInterface::SpeakerSettings& settings,
-    const std::string& eventName,
-    const SpeakerManagerObserverInterface::Source& source,
-    const SpeakerInterface::Type& type) {
     executeNotifyObserver(source, type, settings);
 
     // Only send an event if the AVS_SPEAKER_VOLUME settings changed.

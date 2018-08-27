@@ -236,32 +236,6 @@ bool TimeUtils::convertTimeToUtcIso8601Rfc3339(
     std::tm utcTm;
     if (!m_safeCTimeAccess->getGmtime(timeSecs, &utcTm)) {
         ACSDK_ERROR(LX("convertTimeToUtcIso8601Rfc3339").m("cannot retrieve tm struct"));
-    // it's possible for std::strftime to correctly return length = 0, but not with the format string used.  In this
-    // case length == 0 is an error.
-    auto strftimeResult = std::strftime(buf, sizeof(buf) - 1, "%Y-%m-%dT%H:%M:%S", &utcTm);
-    if (strftimeResult == 0) {
-        ACSDK_ERROR(LX("convertTimeToUtcIso8601Rfc3339Failed").m("strftime(..) failed"));
-        return false;
-    }
-
-    std::stringstream millisecondTrailer;
-    millisecondTrailer << buf << "." << std::setfill('0') << std::setw(3) << (timeVal.tv_usec / 1000) << "Z";
-
-    *iso8601TimeString = millisecondTrailer.str();
-    return true;
-}
-
-bool TimeUtils::localtimeOffset(std::time_t* ret) {
-    static const std::chrono::time_point<std::chrono::system_clock> timePoint{std::chrono::hours(24)};
-    auto fixedTime = std::chrono::system_clock::to_time_t(timePoint);
-
-    std::tm utcTm;
-    std::time_t utc;
-    std::tm localTm;
-    std::time_t local;
-    if (!m_safeCTimeAccess->getGmtime(fixedTime, &utcTm) || !convertToLocalTimeT(&utcTm, &utc) ||
-        !m_safeCTimeAccess->getLocaltime(fixedTime, &localTm) || !convertToLocalTimeT(&localTm, &local)) {
-        ACSDK_ERROR(LX("localtimeOffset").m("cannot retrieve tm struct"));
         return false;
     }
 

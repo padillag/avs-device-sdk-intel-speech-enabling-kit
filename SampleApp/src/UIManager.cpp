@@ -174,13 +174,6 @@ static const std::string FIRMWARE_CONTROL_MESSAGE =
     "| Enter a decimal integer value between 1 and 2147483647.                    |\n"
     "+----------------------------------------------------------------------------+\n";
 
-static const std::string FIRMWARE_CONTROL_MESSAGE =
-    "+----------------------------------------------------------------------------+\n"
-    "|                          Firmware Version:                                 |\n"
-    "|                                                                            |\n"
-    "| Enter a decimal integer value between 1 and 2147483647.                    |\n"
-    "+----------------------------------------------------------------------------+\n";
-
 static const std::string VOLUME_CONTROL_MESSAGE =
     "+----------------------------------------------------------------------------+\n"
     "|                          Volume Options:                                   |\n"
@@ -279,27 +272,6 @@ void UIManager::onSpeakerSettingsChanged(
         ledSetVolume(settings.volume);
         sleep(1);
         ledSetState(toLedState(m_dialogState));
-    });
-}
-
-void UIManager::onSetIndicator(avsCommon::avs::IndicatorState state) {
-    m_executor.submit([state]() {
-        std::ostringstream oss;
-        oss << "NOTIFICATION INDICATOR STATE: " << state;
-        ConsolePrinter::prettyPrint(oss.str());
-    });
-}
-
-void UIManager::onAlertStateChange(
-    const std::string& alertToken,
-    alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface::State state,
-    const std::string& reason) {
-    m_executor.submit([this, state]() {
-        std::ostringstream oss;
-        oss << "ALERT STATE: " << state;
-        ConsolePrinter::prettyPrint(oss.str());
-        ledSetState(toLedState(state));
-
     });
 }
 
@@ -469,91 +441,37 @@ void UIManager::microphoneOn() {
     });
 }
 
-const char* UIManager::toLedState(DialogUXState state)
-{
-    const char* led_state;
-    switch (state) {
-    case DialogUXState::IDLE:
-        led_state = "idle";
-    break;
-    case DialogUXState::LISTENING:
-        led_state = "listening";
-        break;
-    case DialogUXState::THINKING:
-        led_state = "thinking";
-        break;
-    case DialogUXState::SPEAKING:
-        led_state = "speaking";
-        break;
-    case DialogUXState::FINISHED:
-        led_state = "idle";
-    break;
-    case DialogUXState::MIC_OFF:
-        led_state = "mic_off";
-    break;
-    default:
-        ConsolePrinter::prettyPrint(DialogUXStateObserverInterface::stateToString(m_dialogState));
-        led_state = "idle";
-        break;
-    }
-    return led_state;
-}
-
-const char* UIManager::toLedState(
-    alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface::State state)
-{
-
-
-    const char* led_state;
-    switch (state) {
-    case alexaClientSDK::capabilityAgents::alerts::AlertObserverInterface::State::STARTED:
-        led_state = "alarm";
-    break;
-    default:
-        led_state = "idle";
-        break;
-    }
-    return led_state;
-}
-
-
-void UIManager::ledSetState(const char* led_state) {
-    /* TODO get LED constants from a header */
-    std::ofstream led_sysfs;
-    led_sysfs.open(LED_CTRL_STATE);
-    if (led_sysfs.is_open()) {
-        led_sysfs << led_state;
-        led_sysfs.close();
-    }
-}
-
-void UIManager::ledSetVolume(unsigned int volume) {
-    /* TODO get LED constants from a header */
-    std::ofstream volume_sysfs;
-    volume_sysfs.open(LED_CTRL_VOLUME);
-    int led_volume = 0;
-    if ( volume > 0 )
-        led_volume = volume / 10;
-    if ( led_volume > 10 )
-        ConsolePrinter::prettyPrint("Invalid volume!");
-    else if (volume_sysfs.is_open()) {
-        ConsolePrinter::prettyPrint("Setting volume");
-        volume_sysfs << led_volume;
-        volume_sysfs.close();
-    }
-}
-
 void UIManager::printState() {
     if (m_connectionStatus == avsCommon::sdkInterfaces::ConnectionStatusObserverInterface::Status::DISCONNECTED) {
         ConsolePrinter::prettyPrint("Client not connected!");
     } else if (m_connectionStatus == avsCommon::sdkInterfaces::ConnectionStatusObserverInterface::Status::PENDING) {
         ConsolePrinter::prettyPrint("Connecting...");
     } else if (m_connectionStatus == avsCommon::sdkInterfaces::ConnectionStatusObserverInterface::Status::CONNECTED) {
-	ConsolePrinter::prettyPrint(DialogUXStateObserverInterface::stateToString(m_dialogState));
+        switch (m_dialogState) {
+            case DialogUXState::IDLE:
+                ConsolePrinter::prettyPrint("Alexa is currently idle!");
+                return;
+            case DialogUXState::LISTENING:
+                ConsolePrinter::prettyPrint("Listening...");
+                return;
+            case DialogUXState::THINKING:
+                ConsolePrinter::prettyPrint("Thinking...");
+                return;
+                ;
+            case DialogUXState::SPEAKING:
+                ConsolePrinter::prettyPrint("Speaking...");
+                return;
 	    case DialogUXState::MIC_OFF:
                 ConsolePrinter::prettyPrint("Mic_off...");
 		break;
-    }
+            /*
+             * This is an intermediate state after a SPEAK directive is completed. In the case of a speech burst the
+             * next SPEAK could kick in or if its the last SPEAK directive ALEXA moves to the IDLE state. So we do
+             * nothing for this state.
+             */
+            case DialogUXState::FINISHED:
+                return;
+        }
     }
 }
 
@@ -660,14 +578,7 @@ void UIManager::setFailureStatus(const std::string& status) {
     if (!status.empty() && status != m_failureStatus) {
         m_failureStatus = status;
         printLimitedHelp();
-}
-
-void UIManager::printESPDataOverrideNotSupported() {
-    m_executor.submit([]() { ConsolePrinter::simplePrint("Cannot override ESP Value in this device."); });
-}
-
-void UIManager::printESPNotSupported() {
-    m_executor.submit([]() { ConsolePrinter::simplePrint("ESP is not supported in this device."); });
+    }
 }
 
 }  // namespace sampleApp

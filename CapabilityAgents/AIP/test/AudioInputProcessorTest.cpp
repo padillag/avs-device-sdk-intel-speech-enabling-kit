@@ -2038,63 +2038,6 @@ TEST_F(AudioInputProcessorTest, recognizeWakewordWithKWDMetadata) {
         metadata));
 }
 
-/*
- * This function verifies that @c AudioInputProcessor::recognize() works with @c Initiator::WAKEWORD, keyword and
- * valid espData.
- */
-TEST_F(AudioInputProcessorTest, recognizeWakewordWithESPWithKeyword) {
-    auto begin = AudioInputProcessor::INVALID_INDEX;
-    auto end = AudioInputProcessor::INVALID_INDEX;
-    // note that we are just using a integer instead of a float number, this is to help with JSON verification.
-    ESPData espData("123456789", "987654321");
-    EXPECT_TRUE(testRecognizeSucceeds(
-        *m_audioProvider, Initiator::WAKEWORD, begin, end, KEYWORD_TEXT, RecognizeStopPoint::NONE, nullptr, espData));
-}
-
-/*
- * This function verifies that @c AudioInputProcessor::recognize() works with @c Initiator::WAKEWORD, keyword and
- * invalid espData.  The ReportEchoSpatialPerceptionData event will not be sent but the Recognize event should still be
- * sent.
- */
-TEST_F(AudioInputProcessorTest, recognizeWakewordWithInvalidESPWithKeyword) {
-    auto begin = AudioInputProcessor::INVALID_INDEX;
-    auto end = AudioInputProcessor::INVALID_INDEX;
-    ESPData espData("@#\"", "@#\"");
-    EXPECT_TRUE(testRecognizeSucceeds(
-        *m_audioProvider, Initiator::WAKEWORD, begin, end, KEYWORD_TEXT, RecognizeStopPoint::NONE, nullptr, espData));
-}
-
-/*
- * This function verifies that @c AudioInputProcessor::recognize() works with OPUS encoding used with
- * @c Initiator::TAP.
- */
-TEST_F(AudioInputProcessorTest, recognizeOPUSWithTap) {
-    m_audioProvider->format.encoding = avsCommon::utils::AudioFormat::Encoding::OPUS;
-    m_audioProvider->format.sampleRateHz = 32000;
-    ASSERT_TRUE(testRecognizeSucceeds(*m_audioProvider, Initiator::TAP));
-}
-
-/*
- * This function verifies that @c AudioInputProcessor::recognize() works with OPUS encoding used with
- * @c Initiator::PRESS_AND_HOLD.
- */
-TEST_F(AudioInputProcessorTest, recognizeOPUSWithPressAndHold) {
-    m_audioProvider->format.encoding = avsCommon::utils::AudioFormat::Encoding::OPUS;
-    m_audioProvider->format.sampleRateHz = 32000;
-    ASSERT_TRUE(testRecognizeSucceeds(*m_audioProvider, Initiator::PRESS_AND_HOLD));
-}
-
-/**
- * This function verifies that @c AudioInputProcessor::recognize() works with OPUS encoding used with
- * @c Initiator::WAKEWORD valid begin and end indices.
- */
-TEST_F(AudioInputProcessorTest, recognizeOPUSWithWakeWord) {
-    avsCommon::avs::AudioInputStream::Index begin = 0;
-    avsCommon::avs::AudioInputStream::Index end = AudioInputProcessor::INVALID_INDEX;
-    m_audioProvider->format.encoding = avsCommon::utils::AudioFormat::Encoding::OPUS;
-    m_audioProvider->format.sampleRateHz = 32000;
-    EXPECT_TRUE(testRecognizeSucceeds(*m_audioProvider, Initiator::WAKEWORD, begin, end, KEYWORD_TEXT));
-}
 }  // namespace test
 }  // namespace aip
 }  // namespace capabilityAgents

@@ -68,6 +68,7 @@ public:
     bool erase(std::shared_ptr<Alert> alert) override;
 
     bool bulkErase(const std::list<std::shared_ptr<Alert>>& alertList) override;
+
     bool clearDatabase() override;
 
     /**

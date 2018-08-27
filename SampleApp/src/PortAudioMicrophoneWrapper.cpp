@@ -156,24 +156,6 @@ bool PortAudioMicrophoneWrapper::openStream() {
     inputParameters.suggestedLatency = deviceInfo->defaultLowInputLatency ;
     inputParameters.hostApiSpecificStreamInfo = NULL;
     err = Pa_OpenStream(
-        }
-    }
-    if( devId == numDevices) {
-        printPaError(err, "ERROR: Could not find audio recording device!\n");
-        return false;
-    }
-
-    double srate = SAMPLE_RATE;
-    unsigned long framesPerBuffer = paFramesPerBufferUnspecified;
-    PaStreamParameters inputParameters;
-    bzero( &inputParameters, sizeof( inputParameters ) );
-    inputParameters.channelCount = NUM_INPUT_CHANNELS;
-    inputParameters.device = devId;
-    inputParameters.hostApiSpecificStreamInfo = NULL;
-    inputParameters.sampleFormat = paInt16;
-    inputParameters.suggestedLatency = deviceInfo->defaultLowInputLatency ;
-    inputParameters.hostApiSpecificStreamInfo = NULL;
-    err = Pa_OpenStream(
                     &m_paStream,
                     &inputParameters,
                     NULL,

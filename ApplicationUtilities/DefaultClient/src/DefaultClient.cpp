@@ -312,11 +312,6 @@ bool DefaultClient::initialize(
         m_directiveSequencer, m_connectionManager, customerDataManager);
 
     /*
-     */
-    m_registrationManager = std::make_shared<registrationManager::RegistrationManager>(
-        m_directiveSequencer, m_connectionManager, customerDataManager);
-
-    /*
      * Creating the Audio Activity Tracker - This component is responsibly for reporting the audio channel focus
      * information to AVS.
      */
@@ -330,21 +325,6 @@ bool DefaultClient::initialize(
      */
     m_audioFocusManager =
         std::make_shared<afml::FocusManager>(afml::FocusManager::getDefaultAudioChannels(), m_audioActivityTracker);
-
-    /*
-     * Creating the Audio Activity Tracker - This component is responsibly for reporting the audio channel focus
-     * information to AVS.
-     */
-    m_audioActivityTracker = afml::AudioActivityTracker::create(contextManager);
-
-    /*
-     * Creating the Focus Manager - This component deals with the management of layered audio focus across various
-     * components. It handles granting access to Channels as well as pushing different "Channels" to foreground,
-     * background, or no focus based on which other Channels are active and the priorities of those Channels. Each
-     * Capability Agent will require the Focus Manager in order to request access to the Channel it wishes to play on.
-     */
-    m_audioFocusManager =
-        std::make_shared<afml::FocusManager>(afml::FocusManager::DEFAULT_AUDIO_CHANNELS, m_audioActivityTracker);
 
     /*
      * Creating the User Inactivity Monitor - This component is responsibly for updating AVS of user inactivity as
@@ -529,9 +509,6 @@ bool DefaultClient::initialize(
     }
 
 
-        speakSpeaker, audioSpeaker, alertsSpeaker, notificationsSpeaker};
-    allSpeakers.insert(allSpeakers.end(), additionalSpeakers.begin(), additionalSpeakers.end());
-
     /*
      * Creating the ExternalMediaPlayer CA - This component is the Capability Agent that implements the
      * ExternalMediaPlayer interface of AVS.
@@ -567,43 +544,6 @@ bool DefaultClient::initialize(
          */
         m_visualFocusManager = std::make_shared<afml::FocusManager>(
             afml::FocusManager::getDefaultVisualChannels(), m_visualActivityTracker);
-
-        /*
-     * Creating the ExternalMediaPlayer CA - This component is the Capability Agent that implements the
-     * ExternalMediaPlayer interface of AVS.
-     */
-    m_externalMediaPlayer = capabilityAgents::externalMediaPlayer::ExternalMediaPlayer::create(
-        externalMusicProviderMediaPlayers,
-        adapterCreationMap,
-        m_speakerManager,
-        m_connectionManager,
-        m_audioFocusManager,
-        contextManager,
-        m_exceptionSender,
-        m_playbackRouter);
-    if (!m_externalMediaPlayer) {
-        ACSDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateExternalMediaPlayer"));
-        return false;
-    }
-
-    m_speakerManager->addSpeaker(m_externalMediaPlayer);
-
-    if (isGuiSupported) {
-        /*
-         * Creating the Visual Activity Tracker - This component is responsibly for reporting the visual channel focus
-         * information to AVS.
-         */
-        m_visualActivityTracker = afml::VisualActivityTracker::create(contextManager);
-
-        /*
-         * Creating the Visual Focus Manager - This component deals with the management of visual focus across various
-         * components. It handles granting access to Channels as well as pushing different "Channels" to foreground,
-         * background, or no focus based on which other Channels are active and the priorities of those Channels. Each
-         * Capability Agent will require the Focus Manager in order to request access to the Channel it wishes to play
-         * on.
-         */
-        m_visualFocusManager =
-            std::make_shared<afml::FocusManager>(afml::FocusManager::DEFAULT_VISUAL_CHANNELS, m_visualActivityTracker);
 
         /*
          * Creating the TemplateRuntime Capability Agent - This component is the Capability Agent that implements the
@@ -655,23 +595,6 @@ bool DefaultClient::initialize(
     if (!endpointHandler) {
         ACSDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateEndpointHandler"));
         return false;
-    }
-
-    if (avsCommon::sdkInterfaces::softwareInfo::isValidFirmwareVersion(firmwareVersion)) {
-        auto tempSender = capabilityAgents::system::SoftwareInfoSender::create(
-            firmwareVersion,
-            sendSoftwareInfoOnConnected,
-            softwareInfoSenderObserver,
-            m_connectionManager,
-            m_connectionManager,
-            m_exceptionSender);
-        if (tempSender) {
-            std::lock_guard<std::mutex> lock(m_softwareInfoSenderMutex);
-            m_softwareInfoSender = tempSender;
-        } else {
-            ACSDK_ERROR(LX("initializeFailed").d("reason", "unableToCreateSoftwareInfoSender"));
-            return false;
-        }
     }
 
     /*

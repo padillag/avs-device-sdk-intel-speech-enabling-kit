@@ -32,7 +32,7 @@ InteractionManager::InteractionManager(
     std::shared_ptr<avsCommon::sdkInterfaces::CallManagerInterface> callManager,
 	bool startPaStream
 	) :
-	    RequiresShutdown{"InteractionManager"},
+        RequiresShutdown{"InteractionManager"},
         m_client{client},
         m_micWrapper{micWrapper},
         m_userInterface{userInterface},

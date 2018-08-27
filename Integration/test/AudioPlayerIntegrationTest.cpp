@@ -52,8 +52,6 @@
 #include "Integration/TestExceptionEncounteredSender.h"
 #include "Integration/TestMessageSender.h"
 #include "Integration/TestSpeechSynthesizerObserver.h"
-#include "PlaybackController/PlaybackController.h"
-#include "PlaybackController/PlaybackRouter.h"
 
 #ifdef GSTREAMER_MEDIA_PLAYER
 #include "MediaPlayer/MediaPlayer.h"
@@ -285,9 +283,6 @@ protected:
         ASSERT_EQ(state, FocusState::FOREGROUND);
 
         m_playbackController = PlaybackController::create(m_context->getContextManager(), m_avsConnectionManager);
-        m_playbackRouter = PlaybackRouter::create(m_playbackController);
-
-        m_playbackController = PlaybackController::create(m_contextManager, m_avsConnectionManager);
         m_playbackRouter = PlaybackRouter::create(m_playbackController);
 
 #ifdef GSTREAMER_MEDIA_PLAYER

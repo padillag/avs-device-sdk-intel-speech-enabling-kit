@@ -91,8 +91,6 @@ static const std::string MEDIA_PLAYER_CONFIG = R"({
 /// Tolerance when setting expectations.
 static const std::chrono::milliseconds TOLERANCE(500);
 
-#endif
-
 /// Padding to add to offsets when necessary.
 static const std::chrono::milliseconds PADDING(10);
 
@@ -1023,8 +1021,11 @@ TEST_F(MediaPlayerTest, testSetOffsetSeekableSource) {
 
     std::chrono::milliseconds timeElapsed =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    ACSDK_INFO(LX("MediaPlayerTest").d("timeElapsed", timeElapsed.count()));
     // Time elapsed should be total file length minus the offset.
     ASSERT_TRUE(timeElapsed < (MP3_FILE_LENGTH - offset + TOLERANCE));
+}
+
 // TODO: ACSDK-1024 MediaPlayerTest.testSetOffsetOutsideBounds is flaky
 /**
  * Test setting the offset outside the bounds of the source. Playback will immediately end.
@@ -1426,9 +1427,6 @@ int main(int argc, char** argv) {
             {alexaClientSDK::mediaPlayer::test::TEST_M3U_PLAYLIST_URL,
              alexaClientSDK::mediaPlayer::test::TEST_M3U_PLAYLIST_CONTENT});
 
-#if defined(_WIN32) && !defined(RESOLVED_ACSDK_1141)
-        ::testing::GTEST_FLAG(filter) = "-MediaPlayerTest*";
-#endif
         return RUN_ALL_TESTS();
     }
 }

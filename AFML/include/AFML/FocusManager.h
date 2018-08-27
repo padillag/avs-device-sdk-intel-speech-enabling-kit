@@ -84,12 +84,6 @@ public:
         unsigned int priority;
     };
 
-    /// The default @c ChannelConfiguration for AVS audio channels.
-    static const std::vector<FocusManager::ChannelConfiguration> DEFAULT_AUDIO_CHANNELS;
-
-    /// The default @c ChannelConfiguration for AVS visual channels.
-    static const std::vector<FocusManager::ChannelConfiguration> DEFAULT_VISUAL_CHANNELS;
-
     /**
      * This constructor creates Channels based on the provided configurations.
      *

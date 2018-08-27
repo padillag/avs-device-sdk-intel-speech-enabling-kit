@@ -37,14 +37,6 @@ FocusManager::FocusManager(
     const std::vector<ChannelConfiguration> channelConfigurations,
     std::shared_ptr<ActivityTrackerInterface> activityTrackerInterface) :
         m_activityTracker{activityTrackerInterface} {
-
-const std::vector<FocusManager::ChannelConfiguration> FocusManager::DEFAULT_VISUAL_CHANNELS = {
-    {FocusManagerInterface::VISUAL_CHANNEL_NAME, FocusManagerInterface::VISUAL_CHANNEL_PRIORITY}};
-
-FocusManager::FocusManager(
-    const std::vector<ChannelConfiguration>& channelConfigurations,
-    std::shared_ptr<ActivityTrackerInterface> activityTrackerInterface) :
-        m_activityTracker{activityTrackerInterface} {
     for (auto config : channelConfigurations) {
         if (doesChannelNameExist(config.name)) {
             ACSDK_ERROR(LX("createChannelFailed").d("reason", "channelNameExists").d("config", config.toString()));
@@ -203,7 +195,6 @@ void FocusManager::stopForegroundActivityHelper(
     if (!foregroundChannel->hasObserver()) {
         return;
     }
-
     setChannelFocus(foregroundChannel, FocusState::NONE);
 
     // Lock here to update internal state which stopForegroundActivity may concurrently access.

@@ -181,34 +181,6 @@ private:
     /// The singleton map from @c playerId to @c ExternalMediaAdapter creation functions.
     static capabilityAgents::externalMediaPlayer::ExternalMediaPlayer::AdapterCreationMap m_adapterToCreateFuncMap;
 
-    /// The map of the adapters and their mediaPlayers.
-    std::unordered_map<std::string, std::shared_ptr<avsCommon::utils::mediaPlayer::MediaPlayerInterface>>
-        m_externalMusicProviderMediaPlayersMap;
-
-    /// The vector of mediaPlayers for the adapters.
-    std::vector<std::shared_ptr<mediaPlayer::MediaPlayer>> m_adapterMediaPlayers;
-
-    /// The @c MediaPlayer used by @c SpeechSynthesizer.
-    std::shared_ptr<mediaPlayer::MediaPlayer> m_speakMediaPlayer;
-
-    /// The @c MediaPlayer used by @c AudioPlayer.
-    std::shared_ptr<mediaPlayer::MediaPlayer> m_audioMediaPlayer;
-
-    /// The @c MediaPlayer used by @c Alerts.
-    std::shared_ptr<mediaPlayer::MediaPlayer> m_alertsMediaPlayer;
-
-    /// The @c MediaPlayer used by @c NotificationsCapabilityAgent.
-    std::shared_ptr<mediaPlayer::MediaPlayer> m_notificationsMediaPlayer;
-
-    using SpeakerTypeAndCreateFunc =
-        std::pair<avsCommon::sdkInterfaces::SpeakerInterface::Type, MediaPlayerCreateFunction>;
-
-    /// The singleton map from @c playerId to @c MediaPlayerCreateFunction.
-    static std::unordered_map<std::string, SpeakerTypeAndCreateFunc> m_playerToMediaPlayerMap;
-
-    /// The singleton map from @c playerId to @c ExternalMediaAdapter creation functions.
-    static capabilityAgents::externalMediaPlayer::ExternalMediaPlayer::AdapterCreationMap m_adapterToCreateFuncMap;
-
 #ifdef KWD
     /// The Wakeword Detector which can wake up the client using audio input.
     std::unique_ptr<kwd::AbstractKeywordDetector> m_keywordDetector;

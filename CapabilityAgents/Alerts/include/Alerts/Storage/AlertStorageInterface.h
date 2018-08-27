@@ -102,9 +102,13 @@ public:
      * an error deleting one.
      * @note It is not an error if an alert in the parameter list is not present in the database.  This accommodates
      * the race condition between an local alert deletion and a request from AVS.
+     *
      * @param alertList The list of alerts to be erased.
      * @return Whether all alerts were successfully erased.
+     */
     virtual bool bulkErase(const std::list<std::shared_ptr<Alert>>& alertList) = 0;
+
+    /**
      * A utility function to clear the database of all records.  Note that the database will still exist, as will
      * the tables.  Only the rows will be erased.
      *

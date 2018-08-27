@@ -238,6 +238,7 @@ std::string CurlEasyHandleWrapper::urlEncode(const std::string& in) const {
     if (temp) {
         result = temp;
         curl_free(temp);
+    }
     return result;
 }
 

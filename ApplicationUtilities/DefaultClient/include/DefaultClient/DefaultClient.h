@@ -35,8 +35,6 @@
 #include <AVSCommon/SDKInterfaces/Audio/AudioFactoryInterface.h>
 #include <AVSCommon/SDKInterfaces/AuthDelegateInterface.h>
 #include <AVSCommon/SDKInterfaces/AudioPlayerObserverInterface.h>
-#include <AVSCommon/SDKInterfaces/AuthDelegateInterface.h>
-#include <AVSCommon/SDKInterfaces/AudioPlayerObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/CallManagerInterface.h>
 #include <AVSCommon/SDKInterfaces/ConnectionStatusObserverInterface.h>
 #include <AVSCommon/SDKInterfaces/CapabilitiesDelegateInterface.h>

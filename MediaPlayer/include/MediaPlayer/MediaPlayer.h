@@ -126,17 +126,11 @@ public:
 
     void doShutdown() override;
 
-    void onError() override;
-    /// @}
-
-    void doShutdown() override;
-
 private:
     /**
      * The @c AudioPipeline consists of the following elements:
      * @li @c appsrc The appsrc element is used as the source to which audio data is provided.
      * @li @c decoder Decodebin is used as the decoder element to decode audio.
-     * @li @c decodedQueue A queue is used to store the decoded data.
      * @li @c converter An audio-converter is used to convert between audio formats.
      * @li @c volume The volume element is used as a volume control.
      * @li @c resampler The optional resampler element is used to convert to a specified format
@@ -155,9 +149,6 @@ private:
 
         /// The decoder element.
         GstElement* decoder;
-
-        /// A queue for decoded elements.
-        GstElement* decodedQueue;
 
         /// The converter element.
         GstElement* converter;
@@ -181,7 +172,6 @@ private:
         AudioPipeline() :
                 appsrc{nullptr},
                 decoder{nullptr},
-                decodedQueue{nullptr},
                 converter{nullptr},
                 volume{nullptr},
                 audioSink{nullptr},

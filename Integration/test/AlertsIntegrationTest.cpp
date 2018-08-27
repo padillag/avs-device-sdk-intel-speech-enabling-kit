@@ -51,14 +51,12 @@
 #include <System/UserInactivityMonitor.h>
 
 #include "Integration/ACLTestContext.h"
-#include "AuthDelegate/AuthDelegate.h"
 #include "Integration/ObservableMessageRequest.h"
 #include "Integration/TestAlertObserver.h"
 #include "Integration/TestDirectiveHandler.h"
 #include "Integration/TestExceptionEncounteredSender.h"
 #include "Integration/TestMessageSender.h"
 #include "Integration/TestSpeechSynthesizerObserver.h"
-#include "RegistrationManager/CustomerDataManager.h"
 
 #ifdef GSTREAMER_MEDIA_PLAYER
 #include <MediaPlayer/MediaPlayer.h>
@@ -1033,10 +1031,6 @@ TEST_F(AlertsTest, RemoveStorageBeforeAlarmIsSet) {
     }
     // Missing alert is not treated as an error, DeleteAlertSucceeded is sent.
     ASSERT_TRUE(checkSentEventName(sendParams, NAME_DELETE_ALERT_SUCCEEDED));
-
-    ASSERT_EQ(
-        m_testContentClient->waitForFocusChange(WAIT_FOR_TIMEOUT_DURATION, &focusChanged), FocusState::BACKGROUND);
-    ASSERT_TRUE(focusChanged);
 
     ASSERT_EQ(
         m_testContentClient->waitForFocusChange(WAIT_FOR_TIMEOUT_DURATION, &focusChanged), FocusState::BACKGROUND);

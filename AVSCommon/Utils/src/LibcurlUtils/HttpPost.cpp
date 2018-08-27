@@ -53,6 +53,8 @@ long HttpPost::doPost(
     auto response = doPost(url, {}, data, timeout);
     body = response.body;
     return response.code;
+}
+
 HTTPResponse HttpPost::doPost(
     const std::string& url,
     const std::vector<std::string> headerLines,
@@ -119,6 +121,8 @@ std::string HttpPost::buildPostData(const std::vector<std::pair<std::string, std
     }
 
     return dataStream.str();
+}
+
 size_t HttpPost::staticWriteCallbackLocked(char* ptr, size_t size, size_t nmemb, void* userdata) {
     if (!userdata) {
         ACSDK_ERROR(LX("staticWriteCallbackFailed").d("reason", "nullUserData"));

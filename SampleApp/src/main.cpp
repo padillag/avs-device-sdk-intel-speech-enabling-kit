@@ -78,6 +78,7 @@ int main(int argc, char* argv[]) {
             }
         }
     } else {
+#if defined(KWD_KITTAI) || defined(KWD_SENSORY)
         if (argc < 3) {
             alexaClientSDK::sampleApp::ConsolePrinter::simplePrint(
                 "USAGE: " + std::string(argv[0]) +
@@ -90,6 +91,7 @@ int main(int argc, char* argv[]) {
 				hwName = std::string(argv[4]);
             }
         }
+#else
         if (argc < 2) {
             alexaClientSDK::sampleApp::ConsolePrinter::simplePrint(
                 "USAGE: " + std::string(argv[0]) + " <path_to_AlexaClientSDKConfig.json> [log_level]");
@@ -98,11 +100,12 @@ int main(int argc, char* argv[]) {
         if (3 == argc) {
             logLevel = std::string(argv[2]);
         }
+#endif
+
         configFiles.push_back(std::string(argv[1]));
         alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("configFile " + std::string(argv[1]));
     }
 
-    alexaClientSDK::sampleApp::ConsolePrinter::simplePrint("Create to SampleApplication to "+hwName);
     auto sampleApplication =
         alexaClientSDK::sampleApp::SampleApplication::create(configFiles, pathToKWDInputFolder, logLevel,hwName);
     if (!sampleApplication) {

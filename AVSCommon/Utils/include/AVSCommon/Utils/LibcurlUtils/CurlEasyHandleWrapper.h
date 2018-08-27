@@ -176,14 +176,6 @@ public:
     bool setPostData(const std::string& data);
 
     /**
-     * Sets the data to be sent in the next POST operation.
-     *
-     * @param data String buffer to the full data to send in a HTTP POST operation.
-     * @returns Whether the operation was successful.
-     */
-    bool setPostData(const std::string& data);
-
-    /**
      * Sets how long the stream should take, in seconds, to establish a connection.
      * If not set explicitly there is no timeout.
      *

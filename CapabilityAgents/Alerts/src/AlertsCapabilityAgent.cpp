@@ -73,6 +73,7 @@ static const std::string DIRECTIVE_NAME_SET_VOLUME = "SetVolume";
 static const std::string DIRECTIVE_NAME_ADJUST_VOLUME = "AdjustVolume";
 
 // ==== Events ===
+
 /// The value of the SetAlertSucceeded Event name.
 static const std::string SET_ALERT_SUCCEEDED_EVENT_NAME = "SetAlertSucceeded";
 /// The value of the SetAlertFailed Event name.
@@ -386,7 +387,14 @@ bool AlertsCapabilityAgent::initialize() {
 
     // Initialize stored value for AVS_ALERTS_VOLUME speaker settings
     if (!getAlertVolumeSettings(&m_lastReportedSpeakerSettings)) {
+        return false;
+    }
+
     updateContextManager();
+
+    return true;
+}
+
 bool AlertsCapabilityAgent::initializeAlerts() {
     return m_alertScheduler.initialize(shared_from_this());
 }

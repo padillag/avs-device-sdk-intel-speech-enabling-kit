@@ -301,8 +301,6 @@ void HTTP2Transport::networkLoop() {
     if (!m_postConnect || !m_postConnect->doPostConnect(shared_from_this())) {
         ACSDK_ERROR(LX("networkLoopFailed").d("reason", "failedToCreateAPostConnectObject"));
         setIsStopping(ConnectionStatusObserverInterface::ChangedReason::INTERNAL_ERROR);
-    ACSDK_DEBUG9(LX("setupDownchannelStream").d("url", url));
-
     }
 
     // Establish a connection.

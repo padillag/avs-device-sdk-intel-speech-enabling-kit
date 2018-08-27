@@ -39,7 +39,6 @@ public:
      * HTTP2TransportFactory constructor.
      *
      * @param postConnectFactory Object used to create instances of the PostConnectInterface.
-     * configuration will be used.  If there no such configuration value a default value will be used instead.
      */
     HTTP2TransportFactory(std::shared_ptr<PostConnectFactoryInterface> postConnectFactory);
 

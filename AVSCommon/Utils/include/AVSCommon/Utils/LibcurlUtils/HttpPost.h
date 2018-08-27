@@ -62,8 +62,6 @@ public:
     HttpPost& operator=(const HttpPost& rhs) = delete;
 
     long doPost(const std::string& url, const std::string& data, std::chrono::seconds timeout, std::string& body)
-
-    long doPost(const std::string& url, const std::string& data, std::chrono::seconds timeout, std::string& body)
         override;
 
     HTTPResponse doPost(
@@ -77,10 +75,16 @@ public:
         const std::vector<std::string> headerLines,
         const std::string& data,
         std::chrono::seconds timeout) override;
+
 private:
+    /**
      * Default HttpPost constructor.
+     */
     HttpPost() = default;
+
+    /**
      * Build POST data from a vector of key value pairs.
+     *
      * @param data Vector of key, value pairs from which to build the POST data.
      * @return
      */
